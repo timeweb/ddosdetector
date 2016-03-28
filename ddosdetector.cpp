@@ -1,6 +1,6 @@
 #include <iostream>
 // Signal handlers
-#include <boost/asio/signal_set.hpp>
+#include <boost/asio.hpp>
 
 // Logging
 #include "log4cpp/Category.hh"
@@ -12,155 +12,221 @@
 #include "log4cpp/Priority.hh"
 #include "log4cpp/PatternLayout.hh"
 
+#include "lib/queue.hpp"
 #include "functions.hpp"
 #include "parser.hpp"
+#include "action.hpp"
 #include "rules.hpp"
 #include "collector.hpp"
 #include "controld.hpp"
 
-// Create main logger
+// Основной логер
 log4cpp::Category& logger = log4cpp::Category::getRoot();
 
-class globalSettings
-{
-public:
-	int report_interval;
-	bool console_report;
-	std::string intf;
 
-	globalSettings()
-	{
-		// Default
-		report_interval = 1;
-		console_report = true;
-		intf = "eth0"; // Interface for sniff
-	}
-};
-
+/*
+   Основной поток - watcher. Селедит за синхронизацией правил во всех
+   потоках-обработчиках очередей сетевой карты, собирает данные со
+   счетчиков правил каждого потока, вычисляет итоговые показатели, проверяет
+   триггеры на срабатывание и добавляет задания на выполнение.
+*/
 void watcher(std::vector<std::shared_ptr<rcollection>>& collect,
-	std::shared_ptr<rcollection> main_collect)
+	std::shared_ptr<rcollection> main_collect,
+	std::shared_ptr<ts_queue<action::job>> task_list)
 {
 	rcollection prev_collect(*main_collect);
-	while(1)
+	for(;;)
 	{
-	 	int i = 0;
+		int i = 0;
 		for(auto& c: collect)
 		{
-			if(*c != *main_collect) // актуализация таблицы правил в потоке
+			if(*c != *main_collect) // если у потока неактуальная таблица правил
 			{
-				*c = *main_collect;
+				*c = *main_collect; // синхронизируем правила потока
 				logger.debug("update rules list in thread %d", i);
 			}
-			*main_collect += *c; // прибавляем счетчики потока 
+			*main_collect += *c; // прибавляем счетчики i-того потока 
 			i++;
 		}
-		main_collect->calc_delta(prev_collect);
-		prev_collect = *main_collect; // сохраняем новые счетчики и правила
-		main_collect->check_triggers();
+		main_collect->calc_delta(prev_collect); // вычисляем delta показатели за 1 секунду времени
+		prev_collect = *main_collect; // сохраняем новые счетчики и правила для следующего шага цикла
+		main_collect->check_triggers(*task_list); // проверяем триггеры
 
 		//std::cout << main_collect->get_rules();
 		boost::this_thread::sleep_for(boost::chrono::seconds(1));
 	}
 }
 
+// Сервер управления (TCP или UNIX socket)
 void start_control(boost::asio::io_service& io_service,
-	short port, std::shared_ptr<rcollection> collect)
+	std::string port, std::shared_ptr<rcollection> collect)
 {
 	try
 	{
-		server s(io_service, port, collect);
+		server serv(io_service, port, collect);
 		io_service.run();
 	}
 	catch (std::exception& e)
 	{
-		std::cerr << "Exception: " << e.what() << "\n";
+		logger << log4cpp::Priority::ERROR << "Controld server error: " << e.what();
 	}
 }
 
-int main(int argc, char* argv[]) {
-	if (argc == 1)
+// Обработчик очереди заданий
+void task_runner(std::shared_ptr<ts_queue<action::job>> task_list)
+{
+	action::job cur_job;
+	for(;;)
 	{
-		std::cerr << "Usage: ddosdetector <interface>\n";
-		return 1;
+		boost::this_thread::interruption_point(); // Проверям был ли прерван поток
+		if(task_list->wait_and_pop(cur_job, 1000)) // ждем одну секунду или появления задачи
+		{
+			cur_job.run(); // старт задачи
+		}
 	}
-	init_logging(logger);
-	globalSettings glob_arg;
+}
 
-	glob_arg.intf = std::string(argv[1]);
+int main(int argc, char** argv) {
+	// Настройки по-умолчанию
+	std::string interface = "eth4";
+	std::string config_file = "/etc/ddosdetector.conf";
+	std::string rules_file = "/etc/ddosdetector.rules";
+	std::string log_file = "";
+	std::string port = "9090";
+	bool debug_mode = false;
 
-	//std::cout << boost::asio::ip::address_v4::from_string("192.168.0.1/20").to_ulong();
-	// Declare the supported options.
-	boost::program_options::options_description general_opt("TCP rule options");
+	// Опции запуска приложения
+	namespace po = boost::program_options;
+	po::options_description general_opt("General options");
 	general_opt.add_options()
-		("dstip,d", boost::program_options::value<std::string>(), "destination ip address/net")
-		("srcip,s", boost::program_options::value<std::string>(), "source ip address/net")
-		("dport", boost::program_options::value<std::string>(), "destination port")
-		("sport", boost::program_options::value<std::string>(), "source port")
-		("pps-th", boost::program_options::value<std::string>(), "trigger threshold incomming packets per second (p,Kp,Mp,Tp,Pp)")
-		("bps-th", boost::program_options::value<std::string>(), "trigger threshold incomming bits per second (b,Kb,Mb,Tb,Pb)")
-		("pps-th-period", boost::program_options::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
-		("bps-th-period", boost::program_options::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
-		("action,j", boost::program_options::value<std::string>(), "run action when trigger active")
+		("help,h", "show this help")
+		("interface,i", po::value<std::string>(&interface), "network interface (default eth4)")
+		("config,c", po::value<std::string>(&config_file), "load config (default /etc/ddosdetector.conf)")
+		("rules,r", po::value<std::string>(&rules_file), "load rules from file (default /etc/ddosdetector.rules)")
+		("log,l", po::value<std::string>(&log_file), "log file (default output to console)")
+		("port,p", po::value<std::string>(&port), "port for controld tcp server (may be unix socket file)")
+		("debug,d", "enable debug output")
 	;
 
-// Set network adapter promisc mode ON
+	// Настройки обработчика команд для правил слежения
+	po::options_description rule_opt("TCP rule options");
+	rule_opt.add_options()
+		("dstip,d", po::value<std::string>(), "destination ip address/net")
+		("srcip,s", po::value<std::string>(), "source ip address/net")
+		("dport", po::value<std::string>(), "destination port")
+		("sport", po::value<std::string>(), "source port")
+		("pps-th", po::value<std::string>(), "trigger threshold incomming packets per second (p,Kp,Mp,Tp,Pp)")
+		("bps-th", po::value<std::string>(), "trigger threshold incomming bits per second (b,Kb,Mb,Tb,Pb)")
+		("pps-th-period", po::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
+		("bps-th-period", po::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
+		("action,a", po::value<std::string>(), "run action when trigger active (type:param)")
+	;
+
+	// Обработка аргументов
+	po::variables_map vm; 
+	try 
+	{ 
+		po::store(po::parse_command_line(argc, argv, general_opt), vm);
+		if ( vm.count("help")  ) 
+		{ 
+			std::cout << "Basic Command Line Parameter App" << std::endl 
+					  << general_opt << std::endl
+					  << rule_opt << std::endl; 
+			return 0; 
+		} 
+		po::notify(vm);
+	} 
+	catch(po::error& e) 
+	{ 
+		std::cerr << "ERROR: " << e.what() << std::endl << std::endl; 
+		std::cerr << general_opt << std::endl; 
+		return 1; 
+	} 
+
+	// Включение debug мода
+	if(vm.count("debug"))
+		debug_mode = true;
+
+	// Инициализация логирования
+	init_logging(logger, debug_mode, log_file);
+
+// Включение promisc mode на сетевой карте (необходимо только в Linux)
 #ifdef __linux__
-	manage_interface_promisc_mode(glob_arg.intf, 1);
-	logger << log4cpp::Priority::WARN << "Please disable all types of offload for this NIC manually: ethtool -K " << glob_arg.intf << " gro off gso off tso off lro off";
+	manage_interface_promisc_mode(interface, 1);
+	logger << log4cpp::Priority::WARN
+		   << "Please disable all types of offload for this NIC manually: ethtool -K "
+		   << interface
+		   << " gro off gso off tso off lro off";
 #endif	/* __linux__ */
 
+	// Экземпляр io_service, используется для отлова сигналов и работы сервера controld.
 	boost::asio::io_service io_s;
-	// Construct a signal set registered for process termination.
+
+	// Ловим сигналы  SIGINT, SIGTERM для завершения программы.
 	boost::asio::signal_set signals(io_s, SIGINT, SIGTERM);
-	// Start an asynchronous wait for one of the signals to occur.
 	signals.async_wait(boost::bind(&boost::asio::io_service::stop, &io_s));
 
-	// Create thread_group
+	/* Лист потоков. В этот лист буду добавляться все потоки программы,
+	   для отслеживания состояния и корректного прерывания
+	*/
 	boost::thread_group threads;
 
-	// Create vector of thread's rules
+	/* Вектор указателей на листы правил. С каждым отдельным листом
+	   правил работает один поток. Каждый лист синхронизируется потоком
+	   watcher с эталонным листом main_collect.
+	*/
 	std::vector<std::shared_ptr<rcollection>> threads_coll;
 
 	// Эталонная колекция правил, по ней будут ровняться все потоки
-	auto main_collect = std::make_shared<rcollection>(general_opt);
-	
-	// тестовые правила
-	try
-	{
-		main_collect->tcp.add_rule(tcp_rule(command_parser::tokenize("-d 92.53.96.141/32 --dport 80 --pps-th 1Kp")));
-		//main_collect->tcp.add_rule(tcp_rule(command_parser::tokenize("-d 127.0.0.1/32 --dport 80 --bps-trigger 10Mb")));
-		//main_collect->tcp.add_rule(tcp_rule(command_parser::tokenize("-d 0.0.0.0/24 --dport 80 --bps-trigger 10Mb")));
-		main_collect->tcp.add_rule(tcp_rule(command_parser::tokenize("-d 0.0.0.0/0 --bps-th 100Mb")));
-	}
-	catch(const std::exception& e) { logger << log4cpp::Priority::ERROR << "Test rules failed: " << e.what(); }
+	auto main_collect = std::make_shared<rcollection>(rule_opt);
 
-	// Start receiver threads
+	// Очередь заданий для сработавших триггеров
+	auto  task_list = std::make_shared<ts_queue<action::job>>();
+
+	// Загрузка конфигурации из файла
+	if(is_file_exist(config_file))
+	{
+		logger.info("Load configuration file " + config_file);
+		// TODO: чтение настроек с конфига
+	}
+
+	// Загрузка правил из файла
+	if(is_file_exist(rules_file))
+	{
+		logger.info("Load rules from file " + rules_file);
+		load_rules_from_file(rules_file, main_collect);
+	}
+
+	// Старт netmap интерфейса и запуск потоков обрабатывающих очереди сетевой карты
+	netmap_receiver nm_recv(interface, threads, threads_coll, *main_collect);
 	try
 	{
-		start_receiver_threads(glob_arg.intf, threads, threads_coll, *main_collect);
+		nm_recv.start();
 	}
-	catch(NetmapException& e)
+	catch(netmap::exception& e)
 	{
 		logger << log4cpp::Priority::CRIT << "Netmap failed: " << e.what();
 		return 1;
 	}
 
 	// старт потока наблюдателя
-	threads.add_thread(new boost::thread(watcher, std::ref(threads_coll), main_collect));
-	logger.debug("Starting watcher thread");
+	threads.add_thread(new boost::thread(watcher, std::ref(threads_coll), main_collect, task_list));
+	logger.info("Start watcher thread");
 
 	// старт TCP сервера управления
-	threads.add_thread(new boost::thread(start_control, std::ref(io_s), 1234, main_collect));
-	logger.debug("Starting control server");
+	threads.add_thread(new boost::thread(start_control, std::ref(io_s), port, main_collect));
 
-	// Start wait signals
+	// старт обработчика заданий триггеров
+	threads.add_thread(new boost::thread(task_runner, task_list));
+	logger.info("Starting runner thread");
+
+	// Ждме сигналы
 	io_s.run();
 
-	logger.debug("Exiting.....");
-	// Interrupt threads
+	// Завершение всех потоков
 	threads.interrupt_all();
-	logger.debug("Waiting threads");
-	// Wait all threads for completion
+	logger.info("Waiting threads.....");
+	// Ожидаем корректное завершение всех потоков
 	threads.join_all();
 
 	return 0;

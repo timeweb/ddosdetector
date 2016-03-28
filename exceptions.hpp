@@ -35,17 +35,20 @@ namespace rule
 	};
 }
 
-class NetmapException: public std::exception
+namespace netmap
 {
-private:
-	std::string message_;
-public:
-	explicit NetmapException(const std::string& message) 
-		: message_(message) {};
-	virtual const char* what() const throw()
+	class exception: public std::exception
 	{
-		return message_.c_str();
-	}
-};
+	private:
+		std::string message_;
+	public:
+		explicit exception(const std::string& message) 
+			: message_(message) {};
+		virtual const char* what() const throw()
+		{
+			return message_.c_str();
+		}
+	};
+}
 
 #endif // end EXCEPTIONS_HPP

@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <string.h>
+#include <algorithm>
 
 
 // Logging
@@ -20,9 +21,11 @@
 #include "log4cpp/Priority.hh"
 #include "log4cpp/PatternLayout.hh"
 
-void init_logging(log4cpp::Category& logger);
+void init_logging(log4cpp::Category& logger, bool debug, std::string file);
 #ifdef __linux__
 bool manage_interface_promisc_mode(std::string interface_name, bool switch_on);
 #endif
+std::string get_netmap_intf(std::string& intf);
+bool is_file_exist(const std::string& file_name);
 
 #endif // end FUNCTIONS_HPP

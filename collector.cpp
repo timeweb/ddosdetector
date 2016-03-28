@@ -3,44 +3,37 @@
 // Get log4cpp logger from main programm
 extern log4cpp::Category& logger;
 
-class netmap_poller
+
+netmap_poller::netmap_poller(struct nm_desc* nmd)
+	: fds{nmd->fd, POLLIN}, nifp(nmd->nifp), rxring(NETMAP_RXRING(nmd->nifp, 0)) {}
+bool netmap_poller::try_poll()
 {
-private:
-	struct pollfd fds;
-	struct netmap_ring* rxring;
-	struct netmap_if* nifp;
+	int poll_result = poll(&fds, 1, 1000);
+	if (poll_result == 0) {
+		std::cout << "poll return 0 return code" << std::endl;
+		return false;
+	}
+	if (poll_result == -1) {
+		std::cout << "Netmap plugin: poll failed with return code -1" << std::endl;
+		throw netmap::exception("Netmap plugin: poll failed with return code -1");
+	}
+	return true;
+}
+bool netmap_poller::check_ring(int ring_id)
+{
+	rxring = NETMAP_RXRING(nifp, ring_id);
+	if (nm_ring_empty(rxring)) {
+		return false;
+	}
+	return true;
+}
+struct netmap_ring* netmap_poller::get_ring()
+{
+	return rxring;
+}
 
-public:
-	netmap_poller(struct nm_desc* nmd)
-		: fds{nmd->fd, POLLIN}, nifp(nmd->nifp) {}
-	bool try_poll()
-	{
-		int poll_result = poll(&fds, 1, 1000);
-		if (poll_result == 0) {
-			std::cout << "poll return 0 return code" << std::endl;
-			return false;
-		}
-		if (poll_result == -1) {
-			std::cout << "Netmap plugin: poll failed with return code -1" << std::endl;
-			throw NetmapException("Netmap plugin: poll failed with return code -1");
-		}
-		return true;
-	}
-	bool check_ring(int ring_id)
-	{
-		rxring = NETMAP_RXRING(nifp, ring_id);
-		if (nm_ring_empty(rxring)) {
-			return false;
-		}
-		return true;
-	}
-	struct netmap_ring* get_ring()
-	{
-		return rxring;
-	}
-};
 
-bool check_packet(const u_char *packet, std::shared_ptr<rcollection>& collect, unsigned int len)
+bool netmap_receiver::check_packet(const u_char *packet, std::shared_ptr<rcollection>& collect, unsigned int len)
 {
 	// Decode Packet Header
 
@@ -72,7 +65,7 @@ bool check_packet(const u_char *packet, std::shared_ptr<rcollection>& collect, u
 	return false;
 }
 
-void netmap_thread(struct nm_desc* netmap_descriptor, int thread_number,
+void netmap_receiver::netmap_thread(struct nm_desc* netmap_descriptor, int thread_number,
 	std::shared_ptr<rcollection> collect)
 {
 	struct nm_pkthdr h;
@@ -102,19 +95,23 @@ void netmap_thread(struct nm_desc* netmap_descriptor, int thread_number,
 	}
 }
 
-void start_receiver_threads(std::string intf, boost::thread_group& nm_rcv_threads,
-	std::vector<std::shared_ptr<rcollection>>& threads_rules,
-	rcollection main_collect)
+netmap_receiver::netmap_receiver(std::string interface, boost::thread_group& threads,
+	std::vector<std::shared_ptr<rcollection>>& rules,
+	rcollection collection)
+	: intf(interface), nm_rcv_threads(threads), threads_rules(rules), main_collect(collection)
 {
+	netmap_intf = get_netmap_intf(intf);
 	/*
 	  количество ядер в системе (чтобы привязать каждую очередь
 	  сетевой карты к отдельному ядру).
 	  TODO: проверить std::thread::hardware_concurrency() верней?
 	*/
-	int num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-
+	num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	logger.info("We have %d cpus", num_cpus);
+}
 
+void netmap_receiver::start()
+{
 	struct nm_desc* main_nmd;
 	struct nmreq base_nmd;
 	bzero(&base_nmd, sizeof(base_nmd));
@@ -123,20 +120,21 @@ void start_receiver_threads(std::string intf, boost::thread_group& nm_rcv_thread
 	base_nmd.nr_tx_rings = base_nmd.nr_rx_rings = 0;
 	base_nmd.nr_tx_slots = base_nmd.nr_rx_slots = 0;
 
-	main_nmd = nm_open(intf.c_str(), &base_nmd, 0, NULL);
+	main_nmd = nm_open(netmap_intf.c_str(), &base_nmd, 0, NULL);
 
 	if (main_nmd == NULL) {
-		throw;
+		throw netmap::exception("open netmap interface '" + netmap_intf + "' failed.");
 	}
 
 	logger.debug("Mapped %dKB memory at %p", main_nmd->req.nr_memsize >> 10, main_nmd->mem);
 	logger.debug("We have %d tx and %d rx rings", main_nmd->req.nr_tx_rings,
-		   main_nmd->req.nr_rx_rings);
+		main_nmd->req.nr_rx_rings);
 
 	int num_rings = main_nmd->req.nr_rx_rings;
 	if (num_rings > num_cpus)
+	{
 		logger.warn("number of ring queues (%d) greater than the number of processor cores (%d), the collector may not work best", num_rings, num_cpus);
-
+	}
 	/*
 		переключение сетевой карты на работу с драйвером
 		netmap требует времени (сетевая карта сбрасывается),
@@ -149,13 +147,9 @@ void start_receiver_threads(std::string intf, boost::thread_group& nm_rcv_thread
 	uint64_t nmd_flags = 0;
 	nmd_flags |= NETMAP_NO_TX_POLL; // отключить очереди отправки пакетов
 
-	for (int i = 0; i < num_cpus; i++) {
+	for (int i = 0; i < num_rings; i++) {
 		auto r_ptr = std::make_shared<rcollection>(main_collect);
 		threads_rules.push_back(r_ptr);
-		// auto child_nm_intf = std::make_shared<netmap_interface>(intf, main_nmd, nmd_flags | NM_OPEN_IFNAME | NM_OPEN_NO_MMAP, i);
-		// nm_rcv_threads.add_thread(new boost::thread(netmap_thread, child_nm_intf, i, r_ptr)); // поток обрабатывающий i-ю очередь
-		
-
 
 		struct nm_desc nmd = *main_nmd;
 		// This operation is VERY important!
@@ -165,13 +159,13 @@ void start_receiver_threads(std::string intf, boost::thread_group& nm_rcv_thread
 		nmd.req.nr_ringid = i;
 
 		struct nm_desc* new_nmd =
-			nm_open(intf.c_str(), NULL, nmd_flags | NM_OPEN_IFNAME | NM_OPEN_NO_MMAP, &nmd);
+			nm_open(netmap_intf.c_str(), NULL, nmd_flags | NM_OPEN_IFNAME | NM_OPEN_NO_MMAP, &nmd);
 
 		if (new_nmd == NULL) {
-			throw;
+			throw netmap::exception("open netmap interface '" + netmap_intf + "' failed.");
 		}
-		nm_rcv_threads.add_thread(new boost::thread(netmap_thread, new_nmd, i, r_ptr));
+		nm_rcv_threads.add_thread(new boost::thread(&netmap_receiver::netmap_thread, this, new_nmd, i, r_ptr));
 	}
 
-	logger.debug("Start %d receive on interface %s", num_cpus, intf.c_str());
+	logger.debug("Start %d receive on interface %s", num_cpus, netmap_intf.c_str());
 }

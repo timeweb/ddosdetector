@@ -4,19 +4,27 @@
 // Get log4cpp logger from main programm
 extern log4cpp::Category& logger;
 
-void init_logging(log4cpp::Category& logger)
+void init_logging(log4cpp::Category& logger, bool debug, std::string file)
 {
-	log4cpp::Appender *to_cout = new log4cpp::OstreamAppender("console", &std::cout);
+	if(debug)
+		logger.setPriority(log4cpp::Priority::DEBUG);
+	else
+		logger.setPriority(log4cpp::Priority::INFO);
+	// Log format
 	log4cpp::PatternLayout *layout = new log4cpp::PatternLayout();
 	layout->setConversionPattern("%d [%p] %t %m%n");
-	to_cout->setLayout(layout);
-
-	// log4cpp::Appender *to_file = new log4cpp::FileAppender("default", "program.log");
-	// to_file->setLayout(layout);
-
-	logger.setPriority(log4cpp::Priority::DEBUG);
-	logger.addAppender(to_cout);
-
+	// Log destination
+	log4cpp::Appender *log_appender;
+	if(file != "")
+	{
+		log_appender = new log4cpp::FileAppender("default", file);
+	}
+	else
+	{
+		log_appender = new log4cpp::OstreamAppender("console", &std::cout);
+	}
+	log_appender->setLayout(layout);
+	logger.addAppender(log_appender);
 	logger.info("Logger initialized");
 }
 
@@ -83,5 +91,17 @@ bool manage_interface_promisc_mode(std::string interface_name, bool switch_on) {
 #endif // __linux__
 
 
+std::string get_netmap_intf(std::string& intf)
+{
+	if (intf.find("netmap:") == std::string::npos) {
+		return "netmap:" + intf;
+	} else {
+		return intf;
+	}
+}
 
-
+bool is_file_exist(const std::string& file_name)
+{
+	struct stat buffer;
+	return (stat (file_name.c_str(), &buffer) == 0);
+}
