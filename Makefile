@@ -5,7 +5,7 @@ PROGS = ddosdetector
 CLEANFILES = $(PROGS) *.o
 
 LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lpthread
-CPPFLAGS = -std=c++11 -Wall -Wno-unused-variable
+CPPFLAGS = -std=c++11 -Wall
 CPPFLAGS += -I ./sys
 
 TESTS_LDFLAGS = -lgtest_main -lgtest $(LDFLAGS)
@@ -20,7 +20,7 @@ endif
 
 all: $(PROGS)
 
-ddosdetector: functions.o collector.o parser.o rules.o controld.o ddosdetector.o
+ddosdetector: functions.o collector.o parser.o action.o controld.o rules.o ddosdetector.o
 	$(CXX) $(CPPFLAGS) $^ -o $@ $(LDFLAGS)
 
 collector.o: collector.cpp
@@ -36,6 +36,9 @@ controld.o: controld.cpp
 	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
 
 functions.o: functions.cpp
+	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
+
+action.o: action.cpp
 	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
 
 clean:
