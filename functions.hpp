@@ -11,6 +11,8 @@
 #include <string.h>
 #include <algorithm>
 
+#include <boost/format.hpp>
+
 
 // Logging
 #include "log4cpp/Category.hh"
@@ -27,5 +29,6 @@ bool manage_interface_promisc_mode(std::string interface_name, bool switch_on);
 #endif
 std::string get_netmap_intf(std::string& intf);
 bool is_file_exist(const std::string& file_name);
+std::string format_len(const std::string& s, unsigned int len);
 
 #endif // end FUNCTIONS_HPP

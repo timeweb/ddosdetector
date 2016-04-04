@@ -120,6 +120,7 @@ int main(int argc, char** argv) {
 		("pps-th-period", po::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
 		("bps-th-period", po::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
 		("action,a", po::value<std::string>(), "run action when trigger active (type:param)")
+		("next", "go to next rule in list")
 	;
 
 	// Обработка аргументов
@@ -191,12 +192,22 @@ int main(int argc, char** argv) {
 	}
 
 	// Загрузка правил из файла
-	if(is_file_exist(rules_file))
+	/*
+		rules_file_loader загружает текущий конфиг из файла при инициализации, а
+		также устанавливает новый signal_set для перехвата SIGHUP и обновления конфига
+		Каждый раз при попытке перезагрузить файл правил, выполняется проверка на
+		существование файла.
+	*/
+	rules_file_loader rul_loader(io_s, rules_file, main_collect);
+	try
 	{
-		logger.info("Load rules from file " + rules_file);
-		load_rules_from_file(rules_file, main_collect);
+		rul_loader.start();
 	}
-
+	catch(std::exception& e)
+	{
+		logger << log4cpp::Priority::CRIT << "Rules file loader failed: " << e.what();
+		return 1;
+	}
 	// Старт netmap интерфейса и запуск потоков обрабатывающих очереди сетевой карты
 	netmap_receiver nm_recv(interface, threads, threads_coll, *main_collect);
 	try
@@ -221,7 +232,14 @@ int main(int argc, char** argv) {
 	logger.info("Starting runner thread");
 
 	// Ждме сигналы
-	io_s.run();
+	try
+	{
+		io_s.run();
+	}
+	catch(std::exception& e)
+	{
+		logger << log4cpp::Priority::ERROR << "Signal handler error: " << e.what();
+	}
 
 	// Завершение всех потоков
 	threads.interrupt_all();

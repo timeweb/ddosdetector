@@ -1,6 +1,7 @@
 #ifndef CONTROLD_HPP
 #define CONTROLD_HPP
 #include <stdio.h>
+#include <signal.h>
 #include <iostream>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>

@@ -6,7 +6,7 @@ CLEANFILES = $(PROGS) *.o
 
 LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lpthread
 CPPFLAGS = -std=c++11 -Wall
-CPPFLAGS += -I ./sys
+CPPFLAGS += -I ./sys -I ./proto
 
 TESTS_LDFLAGS = -lgtest_main -lgtest $(LDFLAGS)
 TESTS_CPPFILES = $(wildcard ./test/*.cpp)
@@ -20,7 +20,7 @@ endif
 
 all: $(PROGS)
 
-ddosdetector: functions.o collector.o parser.o action.o controld.o rules.o ddosdetector.o
+ddosdetector: functions.o collector.o parser.o action.o controld.o baserule.o ip.o tcp.o rules.o  ddosdetector.o
 	$(CXX) $(CPPFLAGS) $^ -o $@ $(LDFLAGS)
 
 collector.o: collector.cpp
@@ -39,6 +39,15 @@ functions.o: functions.cpp
 	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
 
 action.o: action.cpp
+	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
+
+tcp.o: proto/tcp.cpp
+	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
+
+ip.o: proto/ip.cpp
+	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
+
+baserule.o: proto/baserule.cpp
 	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
 
 clean:

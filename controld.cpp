@@ -68,26 +68,26 @@ template<class T>
 void session<T>::do_write(std::string msg)
 {
 	auto self(this->shared_from_this());
-	memset(data_, 0, max_length); // зануляем буфер
-	if(msg.length() > max_length)
-	{
-		std::cout << "max buff " << msg.length() << std::endl;
-		strncpy(data_, msg.substr(0, max_length).c_str(), max_length);
-	}
-	else
-	{
-		strncpy(data_, msg.c_str(), msg.length());
-	}
-	boost::asio::async_write(socket_, boost::asio::buffer(data_, strlen(data_)),
+	// memset(data_, 0, max_length); // зануляем буфер
+	// if(msg.length() > max_length)
+	// {
+	// 	std::cout << "max buff " << msg.length() << std::endl;
+	// 	strncpy(data_, msg.substr(0, max_length).c_str(), max_length);
+	// }
+	// else
+	// {
+	// 	strncpy(data_, msg.c_str(), msg.length());
+	// }
+	boost::asio::async_write(socket_, boost::asio::buffer(msg),
 		[this, self, msg](boost::system::error_code ec, std::size_t /*length*/)
 		{
 			if (!ec)
 			{
-				if(msg.length() > max_length)
-				{
-					std::cout << "Recursive max buff" << std::endl;
-					do_write(msg.substr(max_length));
-				}
+				// if(msg.length() > max_length)
+				// {
+				// 	std::cout << "Recursive max buff" << std::endl;
+				// 	do_write(msg.substr(max_length));
+				// }
 			}
 		}
 	);
@@ -112,6 +112,7 @@ void session<T>::parse()
 			help += "  insert rule <type> <num> <rule>     insert new rule by number\n";
 			help += "  del rule <type> <num>               add new rule\n";
 			help += "  show rules                          print all rules with counters\n";
+			help += "  reload rules                        reload all rules from file\n";
 			help += "  exit                                close connection\n";
 			help += "\n\n" + collect_->get_help();
 			do_write(help);
@@ -125,6 +126,11 @@ void session<T>::parse()
 			if(t_cmd[0] == "show" && t_cmd[1] == "rules") // show rules
 			{
 				do_write(collect_->get_rules());
+				return;
+			}
+			if(t_cmd[0] == "reload" && t_cmd[1] == "rules") // show rules
+			{
+				raise(1);
 				return;
 			}
 			// TODO: сделать monitor rules команду, с обновлением раз в секунду
@@ -212,7 +218,7 @@ server::server(boost::asio::io_service& io_service, const std::string& p, std::s
 		boost::asio::ip::tcp::tcp::endpoint ep(boost::asio::ip::tcp::tcp::v4(), num_port);
 		tcp_acceptor_ = std::make_shared<boost::asio::ip::tcp::tcp::acceptor>(io_service, ep);
 		tcp_socket_ = std::make_shared<boost::asio::ip::tcp::tcp::socket>(io_service);
-		logger.info("Start controld tcp server on " + num_port);
+		logger.info("Start controld tcp server on " + std::to_string(num_port));
 		do_tcp_accept();
 	}
 }

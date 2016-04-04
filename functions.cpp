@@ -6,13 +6,18 @@ extern log4cpp::Category& logger;
 
 void init_logging(log4cpp::Category& logger, bool debug, std::string file)
 {
-	if(debug)
-		logger.setPriority(log4cpp::Priority::DEBUG);
-	else
-		logger.setPriority(log4cpp::Priority::INFO);
 	// Log format
 	log4cpp::PatternLayout *layout = new log4cpp::PatternLayout();
-	layout->setConversionPattern("%d [%p] %t %m%n");
+	if(debug)
+	{
+		layout->setConversionPattern("%d [%p] %t %m%n");
+		logger.setPriority(log4cpp::Priority::DEBUG);
+	}
+	else
+	{
+		layout->setConversionPattern("%d %t %m%n");
+		logger.setPriority(log4cpp::Priority::INFO);
+	}
 	// Log destination
 	log4cpp::Appender *log_appender;
 	if(file != "")
@@ -104,4 +109,12 @@ bool is_file_exist(const std::string& file_name)
 {
 	struct stat buffer;
 	return (stat (file_name.c_str(), &buffer) == 0);
+}
+
+std::string format_len(const std::string& s, unsigned int len)
+{
+	std::string s_format = "%-"
+						+ std::to_string(len)
+						+ "s";
+	return boost::str(boost::format(s_format) % s);
 }

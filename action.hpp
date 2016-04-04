@@ -6,14 +6,24 @@
 #include <vector>
 #include <functional>
 #include <algorithm>
+#include <syslog.h>
+#include <stdlib.h>
+#include <fstream>
+
+// Logging
+#include "log4cpp/Category.hh"
+#include "log4cpp/Priority.hh"
 
 #include "exceptions.hpp"
+
+// Get log4cpp logger from main programm
+extern log4cpp::Category& logger;
 
 namespace action
 {
 	void job_log(std::string& to, std::string& data);
 	void job_script(std::string& to, std::string& data);
-	void job_dump(std::string& to, std::string& data);
+	//void job_dump(std::string& to, std::string& data); // FUTURE: create dump traffic and store to .pcap file
 	void job_syslog(std::string& to, std::string& data);
 
 	typedef std::function<void(std::string&, std::string&)> j_funct;
