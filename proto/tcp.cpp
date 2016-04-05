@@ -9,18 +9,35 @@ void tcp_rule::parse(boost::program_options::options_description& opt)
 {
 	parser::command_parser cp(opt);
 	boost::program_options::variables_map vm = cp.parse(tokenize_rule);
+	// // check conflicting
+	// parser::conflicting_options(vm, "seq-eq", "seq-gt", "seq-lt");
+	// parser::conflicting_options(vm, "win-eq", "win-gt", "win-lt");
+	// parser::conflicting_options(vm, "ack-eq", "ack-gt", "ack-lt");
+	// store text rule
 	text_rule = cp.join(tokenize_rule);
 	// parse L3 header
 	ip_header_parse(vm);
 	// parse rule options
 	ip_rule_parse(vm);
 	// parse L4 header
-	try {
+	if (vm.count("sport")) {
 		src_port = parser::range_from_port_string(vm["sport"].as<std::string>());
-	} catch (const boost::bad_any_cast& e ) {}
-	try {
+	}
+	if (vm.count("dport")) {
 		dst_port = parser::range_from_port_string(vm["dport"].as<std::string>());
-	} catch (const boost::bad_any_cast& e ) {}
+	}
+	if (vm.count("seq")) {
+		seq = parser::numcomp_from_string<uint32_t>(vm["seq"].as<std::string>());
+	}
+	if (vm.count("ack")) {
+		ack = parser::numcomp_from_string<uint32_t>(vm["ack"].as<std::string>());
+	}
+	if (vm.count("win")) {
+		win = parser::numcomp_from_string<uint16_t>(vm["win"].as<std::string>());
+	}
+	if (vm.count("hlen")) {
+		len = parser::numcomp_from_string<uint16_t>(vm["hlen"].as<std::string>());
+	}
 }
 bool tcp_rule::check_packet(struct tcphdr *tcp_hdr, uint32_t s_addr, uint32_t d_addr) const
 {
@@ -30,20 +47,33 @@ bool tcp_rule::check_packet(struct tcphdr *tcp_hdr, uint32_t s_addr, uint32_t d_
 	if(!ip_dst.in_this(d_addr)) // check destination ip address
 		return false;
 	// L4 header check
-	uint16_t sport = ntohs(tcp_hdr->source);
-	if(!src_port.in_this(sport))
+	uint16_t h_sport = ntohs(tcp_hdr->source);
+	if(!src_port.in_this(h_sport))
 		return false;
-	uint16_t dport = ntohs(tcp_hdr->dest);
-	if(!dst_port.in_this(dport))
+	uint16_t h_dport = ntohs(tcp_hdr->dest);
+	if(!dst_port.in_this(h_dport))
 		return false;
+	uint32_t h_seq = ntohl(tcp_hdr->seq);
+	if(!seq.in_this(h_seq))
+		return false;
+	uint32_t h_ack = ntohl(tcp_hdr->ack_seq);
+	if(!ack.in_this(h_ack))
+		return false;
+	uint16_t h_win = ntohs(tcp_hdr->window);
+	if(!win.in_this(h_win))
+		return false;
+	uint16_t h_len = tcp_hdr->doff * 4;
+	if(!len.in_this(h_len))
+		return false;
+
 
 	// std::cout << "\n\n== IP HEADER ==";
 	// std::cout << "\nSource IP: " << boost::asio::ip::address_v4(s_addr).to_string();
 	// std::cout << "\nDestination IP: " << boost::asio::ip::address_v4(d_addr).to_string();
 	// // TCP Header
 	// std::cout << "\n== TCP HEADER ==";
-	// std::cout << "\nSource Port: " << std::dec << sport;
-	// std::cout << "\nDestination Port: " << std::dec << dport;
+	// std::cout << "\nSource Port: " << std::dec << h_sport;
+	// std::cout << "\nDestination Port: " << std::dec << h_dport;
 	// std::cout << "\nSEQ number: " << std::dec << ntohl(tcp_hdr->seq);
 	// std::cout << "\nACK number: " << std::dec << ntohl(tcp_hdr->ack_seq);
 	// std::cout << "\nHeader lenght: " << tcp_hdr->doff * 4;

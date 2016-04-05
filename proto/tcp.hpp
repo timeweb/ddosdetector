@@ -16,6 +16,10 @@ class tcp_rule : public ip_header_r, public ip_rule
 public:
 	numrange<uint16_t> src_port;
 	numrange<uint16_t> dst_port;
+	num_comparable<uint32_t> seq;
+	num_comparable<uint32_t> ack;
+	num_comparable<uint16_t> win;
+	num_comparable<uint16_t> len;
 	tcp_rule();
 	explicit tcp_rule(std::vector<std::string> tkn_rule);
 	void parse(boost::program_options::options_description& opt);
