@@ -1,5 +1,7 @@
 #include "controld.hpp"
 
+using namespace boost::asio;
+
 template<class T>
 session<T>::session(T socket, std::shared_ptr<rcollection> c)
 	: socket_(std::move(socket)), collect_(c)
@@ -23,7 +25,7 @@ void session<T>::do_read()
 	do_write(cli);
 	auto self(this->shared_from_this()); // Это делается для того, чтобы убедиться, что объект соединения переживет асинхронной операции: (. Т.е. асинхронной операция продолжается) до тех пор, как лямбда жив, экземпляр соединения жив, а также.
 	memset(data_, 0, max_length); // зануляем буфер
-	socket_.async_read_some(boost::asio::buffer(data_, max_length-1),
+	socket_.async_read_some(buffer(data_, max_length-1),
 		[this, self](boost::system::error_code ec, std::size_t length)
 		{
 			if (!ec)
@@ -53,7 +55,7 @@ void session<T>::do_read_signal() // TODO: добавить отлов сигн�
 {
 	auto self(this->shared_from_this());
 	memset(data_, 0, max_length);
-	socket_.async_read_some(boost::asio::buffer(data_, max_length-1),
+	socket_.async_read_some(buffer(data_, max_length-1),
 		[this, self](boost::system::error_code ec, std::size_t length)
 		{
 			if (!ec)
@@ -78,7 +80,7 @@ void session<T>::do_write(std::string msg)
 	// {
 	// 	strncpy(data_, msg.c_str(), msg.length());
 	// }
-	boost::asio::async_write(socket_, boost::asio::buffer(msg),
+	async_write(socket_, buffer(msg),
 		[this, self, msg](boost::system::error_code ec, std::size_t /*length*/)
 		{
 			if (!ec)
@@ -95,7 +97,7 @@ void session<T>::do_write(std::string msg)
 template<class T>
 void session<T>::parse()
 {
-	std::vector<std::string> t_cmd = parser::tokenize(cmd_);
+	std::vector<std::string> t_cmd = tokenize(cmd_);
 	unsigned int words = t_cmd.size();
 	if(words == 0)
 		return;
@@ -178,7 +180,7 @@ void session<T>::parse()
 	}
 	catch(const std::invalid_argument& e)
 	{
-		do_write("Error: parametr '<num>' not number. Please print 'help'.\n");
+		do_write("Error: invalid argument '" + std::string(e.what()) + "'. Please print 'help'.\n");
 	}
 	catch(const parser::exception& e)
 	{
@@ -195,7 +197,7 @@ void session<T>::parse()
 }
 
 
-server::server(boost::asio::io_service& io_service, const std::string& p, std::shared_ptr<rcollection> c)
+server::server(io_service& io_service, const std::string& p, std::shared_ptr<rcollection> c)
 	: unix_socket(true), port(p), collect_(c)
 {
 	short num_port = 0;
@@ -207,17 +209,17 @@ server::server(boost::asio::io_service& io_service, const std::string& p, std::s
 	catch(boost::bad_lexical_cast &) {}
 	if(unix_socket)
 	{
-		boost::asio::local::stream_protocol::endpoint ep(port);
-		unix_acceptor_ = std::make_shared<boost::asio::local::stream_protocol::acceptor>(io_service, ep);
-		unix_socket_ = std::make_shared<boost::asio::local::stream_protocol::stream_protocol::socket>(io_service);
+		local::stream_protocol::endpoint ep(port);
+		unix_acceptor_ = std::make_shared<local::stream_protocol::stream_protocol::acceptor>(io_service, ep);
+		unix_socket_ = std::make_shared<local::stream_protocol::stream_protocol::socket>(io_service);
 		logger.info("Start controld unix socket server on " + port);
 		do_unix_accept();
 	}
 	else
 	{
-		boost::asio::ip::tcp::tcp::endpoint ep(boost::asio::ip::tcp::tcp::v4(), num_port);
-		tcp_acceptor_ = std::make_shared<boost::asio::ip::tcp::tcp::acceptor>(io_service, ep);
-		tcp_socket_ = std::make_shared<boost::asio::ip::tcp::tcp::socket>(io_service);
+		ip::tcp::tcp::endpoint ep(ip::tcp::tcp::v4(), num_port);
+		tcp_acceptor_ = std::make_shared<ip::tcp::tcp::acceptor>(io_service, ep);
+		tcp_socket_ = std::make_shared<ip::tcp::tcp::socket>(io_service);
 		logger.info("Start controld tcp server on " + std::to_string(num_port));
 		do_tcp_accept();
 	}
@@ -238,7 +240,11 @@ void server::do_tcp_accept()
 			{
 				try
 				{
-					std::make_shared<session<boost::asio::ip::tcp::tcp::socket>>(std::move(*tcp_socket_), std::ref(collect_))->start();
+					std::make_shared<session<ip::tcp::tcp::socket>>
+						(
+							std::move(*tcp_socket_),
+							std::ref(collect_)
+						)->start();
 				}
 				catch(...)
 				{}
@@ -256,7 +262,11 @@ void server::do_unix_accept()
 			{
 				try
 				{
-					std::make_shared<session<boost::asio::local::stream_protocol::stream_protocol::socket>>(std::move(*unix_socket_), std::ref(collect_))->start();
+					std::make_shared<session<local::stream_protocol::stream_protocol::socket>>
+						(
+							std::move(*unix_socket_),
+							std::ref(collect_)
+						)->start();
 				}
 				catch(...)
 				{}
@@ -267,5 +277,5 @@ void server::do_unix_accept()
 }
 
 
-template class session<boost::asio::ip::tcp::tcp::socket>;
-template class session<boost::asio::local::stream_protocol::stream_protocol::socket>;
+template class session<ip::tcp::tcp::socket>;
+template class session<local::stream_protocol::stream_protocol::socket>;
