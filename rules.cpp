@@ -236,7 +236,7 @@ void rules_file_loader::reload_config()
 
 		while(std::getline(r_file, line))
 		{
-			std::vector<std::string> t_cmd = parser::tokenize(line);
+			std::vector<std::string> t_cmd = tokenize(line);
 			if(t_cmd.size() > 1)
 			{
 				try
