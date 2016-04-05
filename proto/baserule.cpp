@@ -42,7 +42,7 @@ bool numrange<T>::operator==(numrange const & other) const
 	return (start==other.start && end==other.end);
 }
 template<class T>
-numrange<T>& numrange<T>::operator=(std::pair<T, T> p)
+numrange<T>& numrange<T>::operator=(const std::pair<T, T>& p)
 {
 	if(p.first != 0 || p.second != 0)
 	{
@@ -50,6 +50,45 @@ numrange<T>& numrange<T>::operator=(std::pair<T, T> p)
 		end = p.second;
 		enable = true;
 	}
+	return *this;
+}
+
+// class num_comparable
+template<class T>
+num_comparable<T>::num_comparable()
+	: num_(0), enable(false), type_(0) {}
+template<class T>
+num_comparable<T>::num_comparable(const std::pair<T, unsigned short int>& p)
+	: num_(p.first), enable(true), type_(p.second) {}
+template<class T>
+bool num_comparable<T>::in_this(T& num) const
+{
+	if(!enable)
+		return true;
+	if(type_ == 0 && num == num_)
+		return true;
+	if(type_ == 1 && num > num_)
+		return true;
+	if(type_ == 2 && num < num_)
+		return true;
+	return false;
+}
+template<class T>
+std::string num_comparable<T>::to_str()
+{
+	return std::to_string(type_) + ":" + std::to_string(num_);
+}
+template<class T>
+bool num_comparable<T>::operator==(num_comparable const & other) const
+{
+	return (num_==other.num_ && type_==other.type_);
+}
+template<class T>
+num_comparable<T>& num_comparable<T>::operator=(const std::pair<T, unsigned short int>& p)
+{
+	num_ = p.first;
+	type_ = p.second;
+	enable = true;
 	return *this;
 }
 
@@ -65,24 +104,24 @@ ip_rule::ip_rule(std::vector<std::string> tkn_rule)
 	bps_last_not_triggered(0), pps_trigger_period(10), bps_trigger_period(10) {}
 void ip_rule::ip_rule_parse(boost::program_options::variables_map& vm)
 {
-	try {
+	if (vm.count("pps-th")) {
 		pps_trigger = parser::from_short_size(vm["pps-th"].as<std::string>(), false);
-	} catch (const boost::bad_any_cast& e ) {}
-	try {
+	}
+	if (vm.count("bps-th")) {
 		bps_trigger = parser::from_short_size(vm["bps-th"].as<std::string>());
-	} catch (const boost::bad_any_cast& e ) {}
-	try {
+	}
+	if (vm.count("pps-th-period")) {
 		pps_trigger_period = vm["pps-th-period"].as<unsigned int>();
-	} catch (const boost::bad_any_cast& e ) {}
-	try {
+	}
+	if (vm.count("bps-th-period")) {
 		bps_trigger_period = vm["bps-th-period"].as<unsigned int>();
-	} catch (const boost::bad_any_cast& e ) {}
-	try { 
+	}
+	if (vm.count("action")) {
 		act = parser::action_from_string(vm["action"].as<std::string>());
-	} catch (const boost::bad_any_cast& e ) {}
-	try { 
+	}
+	if (vm.count("next")) {
 		next_rule = vm.count("next");
-	} catch (const boost::bad_any_cast& e ) {}
+	}
 	// проверка обязательных параметров
 	if(pps_trigger == 0 && bps_trigger == 0)
 		throw parser::exception("pps or bps trigger will be set");
@@ -141,3 +180,5 @@ std::string ip_rule::ip_rule_info()
 
 template class numrange<uint16_t>;
 template class numrange<uint32_t>;
+template class num_comparable<uint16_t>;
+template class num_comparable<uint32_t>;

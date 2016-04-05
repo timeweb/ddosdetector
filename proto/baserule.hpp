@@ -24,7 +24,23 @@ public:
 	std::string to_cidr();
 	std::string to_range();
 	bool operator==(numrange const & other) const;
-	numrange& operator=(std::pair<T, T> p);
+	numrange& operator=(const std::pair<T, T>& p);
+};
+
+template<class T>
+class num_comparable
+{
+public:
+	num_comparable();
+	explicit num_comparable(const std::pair<T, unsigned short int>& p);
+	bool in_this(T& num) const;
+	std::string to_str();
+	bool operator==(num_comparable const & other) const;
+	num_comparable& operator=(const std::pair<T, unsigned short int>& p);
+private:
+	T num_;
+	bool enable;
+	unsigned short int type_;
 };
 
 
