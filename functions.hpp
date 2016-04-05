@@ -10,8 +10,10 @@
 #include <iostream>
 #include <string.h>
 #include <algorithm>
+#include <vector>
 
 #include <boost/format.hpp>
+#include <boost/tokenizer.hpp>
 
 
 // Logging
@@ -30,5 +32,20 @@ bool manage_interface_promisc_mode(std::string interface_name, bool switch_on);
 std::string get_netmap_intf(std::string& intf);
 bool is_file_exist(const std::string& file_name);
 std::string format_len(const std::string& s, unsigned int len);
+typedef boost::escaped_list_separator<char> separator_type;
+std::vector<std::string> tokenize(const std::string& input, separator_type& separator);
+std::vector<std::string> tokenize(const std::string& input);
+template<typename T>
+int get_index(std::vector<T> vec, T& value)
+{
+	auto it = std::find(vec.begin(), vec.end(), value);
+	if (it == vec.end())
+	{
+		throw std::invalid_argument("unsupported value");
+	} else
+	{
+		return std::distance(vec.begin(), it);
+	}
+}
 
 #endif // end FUNCTIONS_HPP

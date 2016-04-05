@@ -118,3 +118,29 @@ std::string format_len(const std::string& s, unsigned int len)
 						+ "s";
 	return boost::str(boost::format(s_format) % s);
 }
+
+std::vector<std::string> tokenize(const std::string& input, separator_type& separator)
+{
+	// Tokenize the intput.
+	boost::tokenizer<separator_type> tokens(input, separator);
+
+	// Copy non-empty tokens from the tokenizer into the result.
+	std::vector<std::string> result;
+	for(const auto& t: tokens)
+	{
+		if(!t.empty())
+		{
+			result.push_back(t);
+		}
+	}
+	return result;
+}
+
+std::vector<std::string> tokenize(const std::string& input)
+{
+	separator_type separator("\\",   // The escape characters.
+							" ",    // The separator characters.
+							"\"\'"); // The quote characters.
+
+	return tokenize(input, separator);
+}
