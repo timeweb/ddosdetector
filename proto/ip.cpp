@@ -6,12 +6,12 @@ ip_header_r::ip_header_r(uint8_t proto)
 	identification(0), flag_offset(0), ttl(0), protocol(proto), checksum(0) {}
 void ip_header_r::ip_header_parse(boost::program_options::variables_map& vm)
 {
-	try {
+	if (vm.count("srcip")) {
 		ip_src = parser::range_from_ip_string(vm["srcip"].as<std::string>());
-	} catch (const boost::bad_any_cast& e ) {}
-	try {
+	}
+	if (vm.count("dstip")) {
 		ip_dst = parser::range_from_ip_string(vm["dstip"].as<std::string>());
-	} catch (const boost::bad_any_cast& e ) {}
+	}
 	// проверка обязательных параметров
 	if(!ip_src.stat() && !ip_dst.stat())
 		throw parser::exception("destination ip or source ip will be set");
