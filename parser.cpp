@@ -2,6 +2,7 @@
 
 namespace parser
 {
+	namespace po = boost::program_options;
 	std::string command_parser::join(std::vector<std::string>& v)
 	{
 		std::string res;
@@ -11,49 +12,38 @@ namespace parser
 		}
 		return res;
 	}
-	command_parser::command_parser(boost::program_options::options_description opt) : options_(opt) {}
-	void command_parser::add_opt(boost::program_options::options_description opt)
+	command_parser::command_parser(po::options_description opt) : options_(opt) {}
+	void command_parser::add_opt(po::options_description opt)
 	{
 		options_.add(opt);
 	}
-	boost::program_options::variables_map command_parser::parse(std::vector<std::string> tokenize_input)
+	po::variables_map command_parser::parse(std::vector<std::string> tokenize_input)
 	{
 		//Parse mocked up tokenize_input.
-		boost::program_options::variables_map vm;
-		boost::program_options::command_line_parser parser(tokenize_input);
-		boost::program_options::store(parser.options(options_).run(), vm);
-		boost::program_options::notify(vm);
+		po::variables_map vm;
+		std::vector<std::string> bad_opt;
+		try
+		{
+			po::command_line_parser parser(tokenize_input);
+			po::parsed_options parsed_opt = parser.options(options_).run();
+			po::store(parsed_opt, vm);
+			po::notify(vm);
+			bad_opt = po::collect_unrecognized(parsed_opt.options,
+				po::include_positional);
+		}
+		catch(std::exception& e)
+		{
+			throw exception("rule parse failed: " + std::string(e.what()));
+		}
+		if(!bad_opt.empty())
+		{
+			throw exception("bad option: " + join(bad_opt));
+		}
 		return vm;
 	}
 	void command_parser::help() const
 	{
 		std::cout << options_ << "\n";
-	}
-
-
-	std::vector<std::string> tokenize(const std::string& input, separator_type& separator)
-	{
-		// Tokenize the intput.
-		boost::tokenizer<separator_type> tokens(input, separator);
-
-		// Copy non-empty tokens from the tokenizer into the result.
-		std::vector<std::string> result;
-		for(const auto& t: tokens)
-		{
-			if(!t.empty())
-			{
-				result.push_back(t);
-			}
-		}
-		return result;
-	}
-	std::vector<std::string> tokenize(const std::string& input)
-	{
-		separator_type separator("\\",   // The escape characters.
-								"= ",    // The separator characters.
-								"\"\'"); // The quote characters.
-
-		return tokenize(input, separator);
 	}
 
 	std::pair<uint32_t, uint32_t> range_from_ip_string(std::string ipstr)
@@ -122,8 +112,6 @@ namespace parser
 
 	std::string short_size(unsigned long int size, bool from_byte)
 	{
-		static const std::vector<std::string> pref_b = { "b/s", "Kb/s", "Mb/s", "Gb/s", "Tb/s", "Pb/s" };
-		static const std::vector<std::string> pref_p = { "p/s", "Kp/s", "Mp/s", "Gp/s", "Tp/s", "Pp/s" };
 		unsigned int cur = 0;
 		unsigned long int rem = 0;
 		size *= (from_byte ? 8 : 1); // convert to bits
@@ -146,24 +134,18 @@ namespace parser
 		}
 	}
 
-	int get_index(std::vector<std::string> vec, std::string& value)
-	{
-		auto it = std::find(vec.begin(), vec.end(), value);
-		if (it == vec.end())
-		{
-			throw exception("unsupported dimension");
-		} else
-		{
-			return std::distance(vec.begin(), it);
-		}
-	}
-
 	uint64_t from_short_size(std::string size, bool to_byte)
 	{
-		static const std::vector<std::string> size_b = { "b", "Kb", "Mb", "Gb", "Tb", "Pb" };
-		static const std::vector<std::string> size_p = { "p", "Kp", "Mp", "Gp", "Tp", "Pp" };
 		size_t bad = 0;
-		unsigned long int num = std::stoul(size, &bad);
+		unsigned long int num;
+		try
+		{ 
+			num = std::stoul(size, &bad);
+		}
+		catch(const std::invalid_argument& e)
+		{
+			throw exception("bad number in '" + size + "'");
+		}
 		if(bad == size.length()) // if unparsed symbols in string
 		{
 			throw exception("unparsed symbols in '" + size + "', please add short prefix: p or b, Kp or Kb etc.");
@@ -172,11 +154,11 @@ namespace parser
 		int pos;
 		if(to_byte)
 		{
-			pos = get_index(size_b, pref);
+			pos = get_index<std::string>(size_b, pref);
 		}
 		else
 		{
-			pos = get_index(size_p, pref);
+			pos = get_index<std::string>(size_p, pref);
 		}
 		for(int i=0; i<pos; i++)
 		{
@@ -204,6 +186,23 @@ namespace parser
 		else
 		{
 			throw exception("upnparsed action '" + value + "', must be: '<type>:<param>'");
+		}
+	}
+
+
+
+	void conflicting_options(const po::variables_map & vm,
+							 const std::string & opt1, const std::string & opt2,
+							 const std::string & opt3)
+	{
+		if (vm.count(opt1) && !vm[opt1].defaulted() &&
+			vm.count(opt2) && !vm[opt2].defaulted() &&
+			vm.count(opt3) && !vm[opt3].defaulted())
+		{
+			throw exception("Conflicting options '"
+				+ opt1 + "' and '"
+				+ opt2 + "' and '"
+				+ opt3 + "' and '");
 		}
 	}
 }
