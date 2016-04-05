@@ -109,12 +109,8 @@ int main(int argc, char** argv) {
 	;
 
 	// Настройки обработчика команд для правил слежения
-	po::options_description rule_opt("TCP rule options");
-	rule_opt.add_options()
-		("dstip,d", po::value<std::string>(), "destination ip address/net")
-		("srcip,s", po::value<std::string>(), "source ip address/net")
-		("dport", po::value<std::string>(), "destination port")
-		("sport", po::value<std::string>(), "source port")
+	po::options_description base_rule_opt("Base rule options");
+	base_rule_opt.add_options()
 		("pps-th", po::value<std::string>(), "trigger threshold incomming packets per second (p,Kp,Mp,Tp,Pp)")
 		("bps-th", po::value<std::string>(), "trigger threshold incomming bits per second (b,Kb,Mb,Tb,Pb)")
 		("pps-th-period", po::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
@@ -122,6 +118,18 @@ int main(int argc, char** argv) {
 		("action,a", po::value<std::string>(), "run action when trigger active (type:param)")
 		("next", "go to next rule in list")
 	;
+	po::options_description tcp_rule_opt("TCP rule options");
+	tcp_rule_opt.add_options()
+		("dstip,d", po::value<std::string>(), "destination ip address/net")
+		("srcip,s", po::value<std::string>(), "source ip address/net")
+		("dport", po::value<std::string>(), "destination port")
+		("sport", po::value<std::string>(), "source port")
+		("seq", po::value<std::string>(), "check if sequence number = or > or < arg")
+		("win", po::value<std::string>(), "check if window size number = or > or < arg")
+		("ack", po::value<std::string>(), "check if acknowledgment number = or > or < arg")
+		("hlen", po::value<std::string>(), "check if TCP header len = or > or < arg (in bytes)")
+	;
+	tcp_rule_opt.add(base_rule_opt);
 
 	// Обработка аргументов
 	po::variables_map vm; 
@@ -132,7 +140,7 @@ int main(int argc, char** argv) {
 		{ 
 			std::cout << "Basic Command Line Parameter App" << std::endl 
 					  << general_opt << std::endl
-					  << rule_opt << std::endl; 
+					  << tcp_rule_opt << std::endl; 
 			return 0; 
 		} 
 		po::notify(vm);
@@ -179,7 +187,7 @@ int main(int argc, char** argv) {
 	std::vector<std::shared_ptr<rcollection>> threads_coll;
 
 	// Эталонная колекция правил, по ней будут ровняться все потоки
-	auto main_collect = std::make_shared<rcollection>(rule_opt);
+	auto main_collect = std::make_shared<rcollection>(tcp_rule_opt);
 
 	// Очередь заданий для сработавших триггеров
 	auto  task_list = std::make_shared<ts_queue<action::job>>();
