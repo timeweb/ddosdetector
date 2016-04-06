@@ -58,8 +58,13 @@ bool netmap_receiver::check_packet(const u_char *packet, std::shared_ptr<rcollec
 	if (ip_hdr->ip_p == IPPROTO_TCP) {
 		// TCP Header
 		struct tcphdr *tcp_hdr = (struct tcphdr*) (packet + sizeof(struct ether_header) + size_ip);
-		
 		collect->tcp.check_list(tcp_hdr, ntohl(ip_hdr->ip_src.s_addr), ntohl(ip_hdr->ip_dst.s_addr), len);
+		return true;
+	}
+	if (ip_hdr->ip_p == IPPROTO_UDP) {
+		// TCP Header
+		struct udphdr *udp_hdr = (struct udphdr*) (packet + sizeof(struct ether_header) + size_ip);
+		collect->udp.check_list(udp_hdr, ntohl(ip_hdr->ip_src.s_addr), ntohl(ip_hdr->ip_dst.s_addr), len);
 		return true;
 	}
 	return false;

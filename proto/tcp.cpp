@@ -1,4 +1,3 @@
-#include <boost/program_options.hpp>
 #include "tcp.hpp"
 
 // class tcp_flags
@@ -11,6 +10,10 @@ bool tcp_flags::in_this(const std::bitset<6>& flags) const
 	if((flags&mask_) == bits_)
 		return true;
 	return false;
+}
+bool tcp_flags::operator==(tcp_flags const & other) const
+{
+	return (bits_ == other.bits_ && mask_ == other.mask_ && enable == other.enable);
 }
 
 // class tcp_rule
@@ -95,24 +98,24 @@ bool tcp_rule::check_packet(struct tcphdr *tcp_hdr, uint32_t s_addr, uint32_t d_
 			return false;
 	}
 
-	std::cout << "\n\n== IP HEADER ==";
-	std::cout << "\nSource IP: " << boost::asio::ip::address_v4(s_addr).to_string();
-	std::cout << "\nDestination IP: " << boost::asio::ip::address_v4(d_addr).to_string();
-	// TCP Header
-	std::cout << "\n== TCP HEADER ==";
-	std::cout << "\nSource Port: " << std::dec << h_sport;
-	std::cout << "\nDestination Port: " << std::dec << h_dport;
-	std::cout << "\nSEQ number: " << std::dec << ntohl(tcp_hdr->seq);
-	std::cout << "\nACK number: " << std::dec << ntohl(tcp_hdr->ack_seq);
-	std::cout << "\nHeader lenght: " << tcp_hdr->doff * 4;
-	std::cout << "\nURG flag: " << tcp_hdr->urg;
-	std::cout << "\nACK flag: " << tcp_hdr->ack;
-	std::cout << "\nPSH flag: " << tcp_hdr->psh;
-	std::cout << "\nRST flag: " << tcp_hdr->rst;
-	std::cout << "\nSYN flag: " << tcp_hdr->syn;
-	std::cout << "\nFIN flag: " << tcp_hdr->fin;
-	std::cout << "\nWindow size: " << std::dec << ntohs(tcp_hdr->window);
-	std::cout << "\nChecksum: " << std::hex << ntohs(tcp_hdr->check);
+	// std::cout << "\n\n== IP HEADER ==";
+	// std::cout << "\nSource IP: " << boost::asio::ip::address_v4(s_addr).to_string();
+	// std::cout << "\nDestination IP: " << boost::asio::ip::address_v4(d_addr).to_string();
+	// // TCP Header
+	// std::cout << "\n== TCP HEADER ==";
+	// std::cout << "\nSource Port: " << std::dec << h_sport;
+	// std::cout << "\nDestination Port: " << std::dec << h_dport;
+	// std::cout << "\nSEQ number: " << std::dec << ntohl(tcp_hdr->seq);
+	// std::cout << "\nACK number: " << std::dec << ntohl(tcp_hdr->ack_seq);
+	// std::cout << "\nHeader lenght: " << tcp_hdr->doff * 4;
+	// std::cout << "\nURG flag: " << tcp_hdr->urg;
+	// std::cout << "\nACK flag: " << tcp_hdr->ack;
+	// std::cout << "\nPSH flag: " << tcp_hdr->psh;
+	// std::cout << "\nRST flag: " << tcp_hdr->rst;
+	// std::cout << "\nSYN flag: " << tcp_hdr->syn;
+	// std::cout << "\nFIN flag: " << tcp_hdr->fin;
+	// std::cout << "\nWindow size: " << std::dec << ntohs(tcp_hdr->window);
+	// std::cout << "\nChecksum: " << std::hex << ntohs(tcp_hdr->check);
 
 	return true;
 }
@@ -130,7 +133,8 @@ bool tcp_rule::operator==(tcp_rule const & other) const
 		&& seq == other.seq
 		&& ack_seq == other.ack_seq
 		&& win == other.win
-		&& len == other.len);
+		&& len == other.len
+		&& flags == other.flags);
 }
 tcp_rule& tcp_rule::operator+=( tcp_rule& other)
 {

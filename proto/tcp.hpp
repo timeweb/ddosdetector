@@ -25,6 +25,7 @@ public:
 	tcp_flags();
 	tcp_flags(std::pair<std::bitset<6>, std::bitset<6>> flags);
 	bool in_this(const std::bitset<6>& flags) const;
+	bool operator==(tcp_flags const & other) const;
 private:
 	std::bitset<6> bits_;
 	std::bitset<6> mask_;

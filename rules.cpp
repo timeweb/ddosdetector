@@ -160,22 +160,24 @@ boost::program_options::options_description rules_list<T>::get_params() const
 
 // struct rcollection
 rcollection::rcollection(boost::program_options::options_description& help_opt,
-						 boost::program_options::options_description& tcp_opt/*,
-						 boost::program_options::options_description& udp_opt,
+						 boost::program_options::options_description& tcp_opt,
+						 boost::program_options::options_description& udp_opt/*,
 						 boost::program_options::options_description& icmp_opt*/)
-	: types({"TCP", "UDP", "ICMP"}), help_(help_opt), tcp(tcp_opt) {}
+	: types({"TCP", "UDP", "ICMP"}), help_(help_opt), tcp(tcp_opt), udp(udp_opt) {}
 rcollection::rcollection(const rcollection& parent, bool clear)
-	: types({"TCP", "UDP", "ICMP"}), tcp(parent.tcp.get_params()) 
+	: types({"TCP", "UDP", "ICMP"}), tcp(parent.tcp.get_params()), udp(parent.udp.get_params()) 
 {
 	tcp = parent.tcp;
+	udp = parent.udp;
 	if(clear)
 	{
 		tcp.clear();
+		udp.clear();
 	}
 }
 bool rcollection::operator!=(rcollection const & other) const
 {
-	return !(tcp == other.tcp);
+	return !(tcp == other.tcp && udp == other.udp);
 }
 rcollection& rcollection::operator=(const rcollection& other)
 {
@@ -183,6 +185,7 @@ rcollection& rcollection::operator=(const rcollection& other)
 	{
 		types = other.types;
 		tcp = other.tcp;
+		udp = other.udp;
 	}
 	return *this;
 }
@@ -191,6 +194,7 @@ rcollection& rcollection::operator+=(rcollection& other)
 	if (this != &other)
 	{
 		tcp += other.tcp;
+		udp += other.udp;
 	}
 	return *this;
 }
@@ -205,6 +209,8 @@ std::string rcollection::get_rules()
 	std::string cnt;
 	cnt += "TCP rules (num, rule, counter):\n";
 	cnt += tcp.get_rules();
+	cnt += "UDP rules (num, rule, counter):\n";
+	cnt += udp.get_rules();
 	return cnt;
 }
 bool rcollection::is_type(std::string type)
@@ -220,11 +226,13 @@ void rcollection::calc_delta(const rcollection& old)
 	if (this != &old)
 	{
 		tcp.calc_delta(old.tcp);
+		udp.calc_delta(old.udp);
 	}
 }
 void rcollection::check_triggers(ts_queue<action::job>& task_list)
 {
 	tcp.check_triggers(task_list);
+	udp.check_triggers(task_list);
 }
 
 
@@ -251,6 +259,10 @@ void rules_file_loader::reload_config()
 					if(t_cmd[0] == "TCP")
 					{
 						buff_collect.tcp.add_rule(tcp_rule(std::vector<std::string>(t_cmd.begin() + 1, t_cmd.end())));
+					}
+					else if(t_cmd[0] == "UDP")
+					{
+						buff_collect.udp.add_rule(udp_rule(std::vector<std::string>(t_cmd.begin() + 1, t_cmd.end())));
 					}
 					else
 					{
@@ -292,3 +304,4 @@ void rules_file_loader::start()
 
 
 template class rules_list<tcp_rule>;
+template class rules_list<udp_rule>;
