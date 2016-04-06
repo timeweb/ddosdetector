@@ -74,10 +74,14 @@ class rcollection
 {
 private:
 	std::vector<std::string> types;
+	boost::program_options::options_description help_;
 public:
 	rules_list<tcp_rule> tcp;
 
-	explicit rcollection(boost::program_options::options_description& tcp_opt);
+	rcollection(boost::program_options::options_description& help_opt,
+				boost::program_options::options_description& tcp_opt/*,
+				boost::program_options::options_description& udp_opt,
+				boost::program_options::options_description& icmp_opt*/);
 	rcollection(const rcollection& parent, bool clear = false);
 	bool operator!=(rcollection const & other) const;
 	rcollection& operator=(const rcollection& other);

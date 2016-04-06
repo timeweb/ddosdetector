@@ -109,8 +109,8 @@ int main(int argc, char** argv) {
 	;
 
 	// Настройки обработчика команд для правил слежения
-	po::options_description base_rule_opt("Base rule options");
-	base_rule_opt.add_options()
+	po::options_description base_opt("Base rule options");
+	base_opt.add_options()
 		("pps-th", po::value<std::string>(), "trigger threshold incomming packets per second (p,Kp,Mp,Tp,Pp)")
 		("bps-th", po::value<std::string>(), "trigger threshold incomming bits per second (b,Kb,Mb,Tb,Pb)")
 		("pps-th-period", po::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
@@ -118,18 +118,49 @@ int main(int argc, char** argv) {
 		("action,a", po::value<std::string>(), "run action when trigger active (type:param)")
 		("next", "go to next rule in list")
 	;
-	po::options_description tcp_rule_opt("TCP rule options");
-	tcp_rule_opt.add_options()
+	// L3 header опции
+	po::options_description ipv4_opt("IPv4 rule options");
+	ipv4_opt.add_options()
 		("dstip,d", po::value<std::string>(), "destination ip address/net")
 		("srcip,s", po::value<std::string>(), "source ip address/net")
+	;
+	// L4 header опции
+	po::options_description tcp_opt("TCP rule options");
+	tcp_opt.add_options()
 		("dport", po::value<std::string>(), "destination port")
 		("sport", po::value<std::string>(), "source port")
 		("seq", po::value<std::string>(), "check if sequence number = or > or < arg")
 		("win", po::value<std::string>(), "check if window size number = or > or < arg")
 		("ack", po::value<std::string>(), "check if acknowledgment number = or > or < arg")
 		("hlen", po::value<std::string>(), "check if TCP header len = or > or < arg (in bytes)")
+		("tcp-flag", po::value<std::string>(), "TCP flags <flag>:<enable>, where <enable> - 1 or 0; <flag> - U or R or P or S or A or F.")
 	;
-	tcp_rule_opt.add(base_rule_opt);
+	po::options_description udp_opt("UDP rule options");
+	udp_opt.add_options()
+		("dport", po::value<std::string>(), "destination port")
+		("sport", po::value<std::string>(), "source port")
+	;
+	po::options_description icmp_opt("ICMP rule options");
+	icmp_opt.add_options()
+		("dport", po::value<std::string>(), "destination port")
+		("sport", po::value<std::string>(), "source port")
+	;
+
+	// Параметры для команды help(), собраны все опции
+	po::options_description help_opt;
+	help_opt.add(base_opt).add(ipv4_opt).add(tcp_opt).add(udp_opt).add(icmp_opt);
+
+	// Параметры для TCP правил: базовые опции правил + ipv4 опции + TCP опции
+	po::options_description tcp_rule_opt;
+	tcp_rule_opt.add(base_opt).add(ipv4_opt).add(tcp_opt);
+
+	// Параметры для UDP правил: базовые опции правил + ipv4 опции + UDP опции
+	po::options_description udp_rule_opt;
+	udp_rule_opt.add(base_opt).add(ipv4_opt).add(udp_opt);
+
+	// Параметры для ICMP правил: базовые опции правил + ipv4 опции + ICMP опции
+	po::options_description icmp_rule_opt;
+	icmp_rule_opt.add(base_opt).add(ipv4_opt).add(icmp_opt);
 
 	// Обработка аргументов
 	po::variables_map vm; 
@@ -140,7 +171,7 @@ int main(int argc, char** argv) {
 		{ 
 			std::cout << "Basic Command Line Parameter App" << std::endl 
 					  << general_opt << std::endl
-					  << tcp_rule_opt << std::endl; 
+					  << help_opt << std::endl;
 			return 0; 
 		} 
 		po::notify(vm);
@@ -187,7 +218,8 @@ int main(int argc, char** argv) {
 	std::vector<std::shared_ptr<rcollection>> threads_coll;
 
 	// Эталонная колекция правил, по ней будут ровняться все потоки
-	auto main_collect = std::make_shared<rcollection>(tcp_rule_opt);
+	auto main_collect = std::make_shared<rcollection>(help_opt, tcp_rule_opt/*,
+													  udp_rule_opt, icmp_rule_opt*/);
 
 	// Очередь заданий для сработавших триггеров
 	auto  task_list = std::make_shared<ts_queue<action::job>>();

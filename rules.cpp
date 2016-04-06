@@ -159,8 +159,11 @@ boost::program_options::options_description rules_list<T>::get_params() const
 }
 
 // struct rcollection
-rcollection::rcollection(boost::program_options::options_description& tcp_opt)
-	: types({"TCP", "UDP", "ICMP"}), tcp(tcp_opt) {}
+rcollection::rcollection(boost::program_options::options_description& help_opt,
+						 boost::program_options::options_description& tcp_opt/*,
+						 boost::program_options::options_description& udp_opt,
+						 boost::program_options::options_description& icmp_opt*/)
+	: types({"TCP", "UDP", "ICMP"}), help_(help_opt), tcp(tcp_opt) {}
 rcollection::rcollection(const rcollection& parent, bool clear)
 	: types({"TCP", "UDP", "ICMP"}), tcp(parent.tcp.get_params()) 
 {
@@ -194,7 +197,7 @@ rcollection& rcollection::operator+=(rcollection& other)
 std::string rcollection::get_help() const
 {
 	std::ostringstream stream;
-	stream << tcp.get_params();
+	stream << help_;
 	return stream.str();
 }
 std::string rcollection::get_rules()
