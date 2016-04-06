@@ -46,7 +46,7 @@ namespace parser
 		std::cout << options_ << "\n";
 	}
 
-	std::pair<uint32_t, uint32_t> range_from_ip_string(std::string ipstr)
+	std::pair<uint32_t, uint32_t> range_from_ip_string(const std::string& ipstr)
 	{
 		try
 		{
@@ -86,7 +86,7 @@ namespace parser
 		}
 	}
 
-	std::pair<uint16_t, uint16_t> range_from_port_string(std::string portstr)
+	std::pair<uint16_t, uint16_t> range_from_port_string(const std::string& portstr)
 	{
 		try
 		{
@@ -134,7 +134,7 @@ namespace parser
 		}
 	}
 
-	uint64_t from_short_size(std::string size, bool to_byte)
+	uint64_t from_short_size(const std::string& size, bool to_byte)
 	{
 		size_t bad = 0;
 		unsigned long int num;
@@ -168,7 +168,7 @@ namespace parser
 		return num;
 	}
 
-	action::action action_from_string(std::string value)
+	action::action action_from_string(const std::string& value)
 	{
 		separator_type separator("\\",    // The escape characters.
 								 ":",    // The separator characters.
@@ -186,23 +186,6 @@ namespace parser
 		else
 		{
 			throw exception("upnparsed action '" + value + "', must be: '<type>:<param>'");
-		}
-	}
-
-
-
-	void conflicting_options(const po::variables_map & vm,
-							 const std::string & opt1, const std::string & opt2,
-							 const std::string & opt3)
-	{
-		if (vm.count(opt1) && !vm[opt1].defaulted() &&
-			vm.count(opt2) && !vm[opt2].defaulted() &&
-			vm.count(opt3) && !vm[opt3].defaulted())
-		{
-			throw exception("Conflicting options '"
-				+ opt1 + "' and '"
-				+ opt2 + "' and '"
-				+ opt3 + "' and '");
 		}
 	}
 }
