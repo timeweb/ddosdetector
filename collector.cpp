@@ -17,18 +17,18 @@ bool netmap_poller::try_poll()
 	}
 	return true;
 }
-bool netmap_poller::check_ring(int ring_id)
-{
-	rxring = NETMAP_RXRING(nifp, ring_id);
-	if (nm_ring_empty(rxring)) {
-		return false;
-	}
-	return true;
-}
-struct netmap_ring* netmap_poller::get_ring()
-{
-	return rxring;
-}
+// bool netmap_poller::check_ring(int ring_id)
+// {
+// 	rxring = NETMAP_RXRING(nifp, ring_id);
+// 	if (nm_ring_empty(rxring)) {
+// 		return false;
+// 	}
+// 	return true;
+// }
+// struct netmap_ring* netmap_poller::get_ring()
+// {
+// 	return rxring;
+// }
 
 
 bool netmap_receiver::check_packet(const u_char *packet, std::shared_ptr<rcollection>& collect, unsigned int len)

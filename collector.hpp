@@ -37,8 +37,8 @@ private:
 public:
 	explicit netmap_poller(struct nm_desc* nmd);
 	bool try_poll();
-	bool check_ring(int ring_id);
-	struct netmap_ring* get_ring();
+	// bool check_ring(int ring_id);
+	// struct netmap_ring* get_ring();
 };
 
 class netmap_receiver
