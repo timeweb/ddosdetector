@@ -64,11 +64,9 @@ void rules_list<T>::calc_delta(const rules_list& rules_old)
 			{
 				delta_c = rules_[i].count_packets - rules_old.rules_[i].count_packets;
 				rules_[i].pps = round((delta_c / delta_time) * 1000);
-				//std::cout << "Rule (" << delta_time << "ms.) #" << i << " delta_pps ("<< delta_c <<"): " << rules_[i].pps << " p: " << rules_[i].count_packets << " old_p: " << rules_old.rules_[i].count_packets << std::endl;
 
 				delta_c = rules_[i].count_bytes - rules_old.rules_[i].count_bytes;
 				rules_[i].bps = round((delta_c / delta_time) * 1000);
-				//std::cout << "Rule (" << delta_time << "ms.) #" << i << " delta_b ("<< delta_c <<"): " << rules_[i].bps << " b: " << rules_[i].count_bytes << " old_b: " << rules_old.rules_[i].count_bytes << std::endl;
 			}
 		}
 	}

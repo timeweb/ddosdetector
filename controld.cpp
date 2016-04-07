@@ -73,7 +73,6 @@ void session<T>::do_write(std::string msg)
 	// memset(data_, 0, max_length); // зануляем буфер
 	// if(msg.length() > max_length)
 	// {
-	// 	std::cout << "max buff " << msg.length() << std::endl;
 	// 	strncpy(data_, msg.substr(0, max_length).c_str(), max_length);
 	// }
 	// else
@@ -81,13 +80,12 @@ void session<T>::do_write(std::string msg)
 	// 	strncpy(data_, msg.c_str(), msg.length());
 	// }
 	async_write(socket_, buffer(msg),
-		[this, self, msg](boost::system::error_code ec, std::size_t /*length*/)
+		[this, self, msg](boost::system::error_code ec, std::size_t length)
 		{
 			if (!ec)
 			{
 				// if(msg.length() > max_length)
 				// {
-				// 	std::cout << "Recursive max buff" << std::endl;
 				// 	do_write(msg.substr(max_length));
 				// }
 			}

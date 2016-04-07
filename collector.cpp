@@ -45,13 +45,14 @@ bool netmap_receiver::check_packet(const u_char *packet, std::shared_ptr<rcollec
 	struct ip *ip_hdr = (struct ip *) (packet + sizeof(struct ether_header));
 	int size_ip = ip_hdr->ip_hl * 4;
 
-	//std::cout << "\n\n== IP HEADER ==";
+	// DEBUG
+	// std::cout << "\n\n== IP HEADER ==";
 	// std::cout << "\nIP Version: " << ip_header.ihl();
-	//std::cout << "\nHeader Length: " << std::dec << size_ip;
-	//std::cout << "\nTotal Length: " << std::dec << ntohs(ip_hdr->ip_len);
+	// std::cout << "\nHeader Length: " << std::dec << size_ip;
+	// std::cout << "\nTotal Length: " << std::dec << ntohs(ip_hdr->ip_len);
 	// std::cout << "\nSource IP: " << boost::asio::ip::address_v4(ip_hdr.ip_src.s_addr).to_string();
 	// std::cout << "\nDestination IP: " << boost::asio::ip::address_v4(ip_hdr.ip_dst.s_addr).to_string();
-	//std::cout << "\nProtocol: " << (int)ip_hdr->ip_p;
+	// std::cout << "\nProtocol: " << (int)ip_hdr->ip_p;
 
 	if (ip_hdr->ip_p == IPPROTO_TCP) {
 		// TCP Header
