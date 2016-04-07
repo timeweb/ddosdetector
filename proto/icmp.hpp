@@ -11,18 +11,18 @@
 #include "baserule.hpp"
 #include "ip.hpp"
 
-class icmp_rule : public ip_header_r, public ip_rule
+class IcmpRule : public Ipv4Rule, public BaseRule
 {
 public:
-	num_comparable<uint8_t> type;
-	num_comparable<uint8_t> code;
-	icmp_rule();
-	explicit icmp_rule(std::vector<std::string> tkn_rule);
-	void parse(boost::program_options::options_description& opt);
-	bool check_packet(struct icmphdr *icmp_hdr, uint32_t s_addr, uint32_t d_addr) const;
-	bool operator==(icmp_rule const & other) const;
-	icmp_rule& operator+=(icmp_rule& other);
-	std::string make_info();
+    NumComparable<uint8_t> type;
+    NumComparable<uint8_t> code;
+    IcmpRule();
+    explicit IcmpRule(std::vector<std::string> tkn_rule);
+    void parse(boost::program_options::options_description& opt);
+    bool check_packet(struct icmphdr *icmp_hdr, uint32_t s_addr, uint32_t d_addr) const;
+    bool operator==(IcmpRule const & other) const;
+    IcmpRule& operator+=(IcmpRule& other);
+    std::string make_info();
 };
 
 #endif // end ICMP_HPP

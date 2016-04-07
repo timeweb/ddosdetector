@@ -11,20 +11,20 @@
 #include "../parser.hpp"
 #include "baserule.hpp"
 
-struct ip_header_r
+struct Ipv4Rule
 {
-	uint8_t ver_ihl;
-	uint8_t tos;
-	uint16_t length;
-	uint16_t identification;
-	uint16_t flag_offset;
-	uint8_t ttl;
-	uint8_t protocol;
-	uint16_t checksum;
-	num_range<uint32_t> ip_src;
-	num_range<uint32_t> ip_dst;
-	explicit ip_header_r(uint8_t proto);
-	void ip_header_parse(boost::program_options::variables_map& vm);
+    uint8_t ver_ihl;
+    uint8_t tos;
+    uint16_t length;
+    uint16_t identification;
+    uint16_t flag_offset;
+    uint8_t ttl;
+    uint8_t protocol;
+    uint16_t checksum;
+    NumRange<uint32_t> ip_src;
+    NumRange<uint32_t> ip_dst;
+    explicit Ipv4Rule(uint8_t proto);
+    void ip_header_parse(boost::program_options::variables_map& vm);
 };
 
 #endif // end IP_HPP

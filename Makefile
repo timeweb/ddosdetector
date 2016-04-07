@@ -20,8 +20,11 @@ endif
 
 all: $(PROGS)
 
-ddosdetector: functions.o collector.o parser.o action.o controld.o baserule.o ip.o tcp.o udp.o icmp.o rules.o  ddosdetector.o
+ddosdetector: exceptions.o functions.o collector.o parser.o action.o controld.o baserule.o ip.o tcp.o udp.o icmp.o rules.o  ddosdetector.o
 	$(CXX) $(CPPFLAGS) $^ -o $@ $(LDFLAGS)
+
+exceptions.o: exceptions.cpp
+	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)
 
 collector.o: collector.cpp
 	$(CXX) $(CPPFLAGS) -c $^ -o $@ $(LDFLAGS)

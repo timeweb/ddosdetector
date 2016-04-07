@@ -38,14 +38,14 @@ std::vector<std::string> tokenize(const std::string& input);
 template<typename T>
 int get_index(std::vector<T> vec, T& value)
 {
-	auto it = std::find(vec.begin(), vec.end(), value);
-	if (it == vec.end())
-	{
-		throw std::invalid_argument("unsupported value");
-	} else
-	{
-		return std::distance(vec.begin(), it);
-	}
+    auto it = std::find(vec.begin(), vec.end(), value);
+    if (it == vec.end())
+    {
+        throw std::invalid_argument("unsupported value");
+    } else
+    {
+        return std::distance(vec.begin(), it);
+    }
 }
 
 #endif // end FUNCTIONS_HPP

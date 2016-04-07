@@ -32,82 +32,82 @@
 extern log4cpp::Category& logger;
 
 template<class T>
-class rules_list
+class RulesList
 {
-private:
-	mutable boost::shared_mutex m_;
-	std::vector<T> rules_;
-	boost::program_options::options_description parse_opt_;
-	std::chrono::high_resolution_clock::time_point last_update_;
 public:
-	explicit rules_list(boost::program_options::options_description opt);
-	bool operator==(rules_list const & other)  const;
-	rules_list& operator=(const rules_list& other);
-	rules_list& operator+=(rules_list& other);
-	void calc_delta(const rules_list& rules_old);
-	void check_triggers(ts_queue<action::job>& task_list);
-	void add_rule(T rule);
-	void del_rule(int num);
-	void clear();
-	void insert_rule(int num, T rule);
-	template<typename H>
-	void check_list(H& l4header, uint32_t s_addr, uint32_t d_addr, unsigned int len)
-	{
-		boost::lock_guard<boost::shared_mutex> guard(m_);
-		for(auto& r: rules_)
-		{
-			if(r.check_packet(l4header, s_addr, d_addr))
-			{
-				r.count_packets++;
-				r.count_bytes += len;
-				if(!r.next_rule)
-				{
-					break;
-				}
-			}
-		}
-	}
-	std::string get_rules();
-	boost::program_options::options_description get_params() const;
+    explicit RulesList(boost::program_options::options_description opt);
+    bool operator==(RulesList const & other)  const;
+    RulesList& operator=(const RulesList& other);
+    RulesList& operator+=(RulesList& other);
+    void calc_delta(const RulesList& rules_old);
+    void check_triggers(ts_queue<action::TriggerJob>& task_list);
+    void add_rule(T rule);
+    void del_rule(int num);
+    void clear();
+    void insert_rule(int num, T rule);
+    template<typename H>
+    void check_list(H& l4header, uint32_t s_addr, uint32_t d_addr, unsigned int len)
+    {
+        boost::lock_guard<boost::shared_mutex> guard(m_);
+        for(auto& r: rules_)
+        {
+            if(r.check_packet(l4header, s_addr, d_addr))
+            {
+                r.count_packets++;
+                r.count_bytes += len;
+                if(!r.next_rule)
+                {
+                    break;
+                }
+            }
+        }
+    }
+    std::string get_rules();
+    boost::program_options::options_description get_params() const;
+private:
+    mutable boost::shared_mutex m_;
+    std::vector<T> rules_;
+    boost::program_options::options_description parse_opt_;
+    std::chrono::high_resolution_clock::time_point last_update_;
 };
 
-class rcollection
+class RulesCollection
 {
-private:
-	std::vector<std::string> types;
-	boost::program_options::options_description help_;
 public:
-	rules_list<tcp_rule> tcp;
-	rules_list<udp_rule> udp;
-	rules_list<icmp_rule> icmp;
-
-	rcollection(boost::program_options::options_description& help_opt,
-				boost::program_options::options_description& tcp_opt,
-				boost::program_options::options_description& udp_opt,
-				boost::program_options::options_description& icmp_opt);
-	rcollection(const rcollection& parent, bool clear = false);
-	bool operator!=(rcollection const & other) const;
-	rcollection& operator=(const rcollection& other);
-	rcollection& operator+=(rcollection& other);
-	std::string get_help() const;
-	std::string get_rules();
-	bool is_type(std::string type);
-	void calc_delta(const rcollection& old);
-	void check_triggers(ts_queue<action::job>& task_list);
+    RulesCollection(boost::program_options::options_description& help_opt,
+                boost::program_options::options_description& tcp_opt,
+                boost::program_options::options_description& udp_opt,
+                boost::program_options::options_description& icmp_opt);
+    RulesCollection(const RulesCollection& parent, bool clear = false);
+    bool operator!=(RulesCollection const & other) const;
+    RulesCollection& operator=(const RulesCollection& other);
+    RulesCollection& operator+=(RulesCollection& other);
+    std::string get_help() const;
+    std::string get_rules();
+    bool is_type(std::string type);
+    void calc_delta(const RulesCollection& old);
+    void check_triggers(ts_queue<action::TriggerJob>& task_list);
+private:
+    std::vector<std::string> types_;
+    boost::program_options::options_description help_;
+public:
+    RulesList<TcpRule> tcp;
+    RulesList<UdpRule> udp;
+    RulesList<IcmpRule> icmp;
 };
 
-class rules_file_loader
+class RulesFileLoader
 {
-private:
-	boost::asio::signal_set sig_set_;
-	std::string rules_config_file_;
-	std::shared_ptr<rcollection>& collect;
-
-	void reload_config();
-	void sig_hook(boost::asio::signal_set& this_set_, boost::system::error_code error, int signal_number);
 public:
-	rules_file_loader(boost::asio::io_service& service, std::string file, std::shared_ptr<rcollection>& c);
-	void start();
+    RulesFileLoader(boost::asio::io_service& service, std::string file, std::shared_ptr<RulesCollection>& c);
+    void start();
+private:
+    boost::asio::signal_set sig_set_;
+    std::string rules_config_file_;
+    std::shared_ptr<RulesCollection>& collect_;
+
+    void reload_config();
+    void sig_hook(boost::asio::signal_set& this_set_, boost::system::error_code error, int signal_number);
 };
 
 #endif // end RULES_HPP

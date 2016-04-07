@@ -3,52 +3,33 @@
 
 #include <stdexcept>
 
-namespace parser
-{
-	class exception: public std::exception
-	{
-	private:
-		std::string message_;
-	public:
-		explicit exception(const std::string& message) 
-			: message_(message) {};
-		virtual const char* what() const throw()
-		{
-			return message_.c_str();
-		}
-	};
-}
 
-namespace rule
+class ParserException: public std::exception
 {
-	class exception: public std::exception
-	{
-	private:
-		std::string message_;
-	public:
-		explicit exception(const std::string& message) 
-			: message_(message) {};
-		virtual const char* what() const throw()
-		{
-			return message_.c_str();
-		}
-	};
-}
+public:
+    explicit ParserException(const std::string& message);
+    virtual const char* what() const throw();
+private:
+    std::string message_;
+};
 
-namespace netmap
+class RuleException: public std::exception
 {
-	class exception: public std::exception
-	{
-	private:
-		std::string message_;
-	public:
-		explicit exception(const std::string& message) 
-			: message_(message) {};
-		virtual const char* what() const throw()
-		{
-			return message_.c_str();
-		}
-	};
-}
+public:
+    explicit RuleException(const std::string& message);
+    virtual const char* what() const throw();
+private:
+    std::string message_;
+};
+
+class NetmapException: public std::exception
+{
+public:
+    explicit NetmapException(const std::string& message);
+    virtual const char* what() const throw();
+private:
+    std::string message_;
+};
+
 
 #endif // end EXCEPTIONS_HPP
