@@ -10,9 +10,6 @@
 #include "../parser.hpp"
 
 template<class T>
-class num
-
-template<class T>
 class num_range
 {
 private:

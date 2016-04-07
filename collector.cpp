@@ -10,11 +10,9 @@ bool netmap_poller::try_poll()
 {
 	int poll_result = poll(&fds, 1, 1000);
 	if (poll_result == 0) {
-		std::cout << "poll return 0 return code" << std::endl;
 		return false;
 	}
 	if (poll_result == -1) {
-		std::cout << "Netmap plugin: poll failed with return code -1" << std::endl;
 		throw netmap::exception("Netmap plugin: poll failed with return code -1");
 	}
 	return true;
@@ -62,9 +60,15 @@ bool netmap_receiver::check_packet(const u_char *packet, std::shared_ptr<rcollec
 		return true;
 	}
 	if (ip_hdr->ip_p == IPPROTO_UDP) {
-		// TCP Header
+		// UDP Header
 		struct udphdr *udp_hdr = (struct udphdr*) (packet + sizeof(struct ether_header) + size_ip);
 		collect->udp.check_list(udp_hdr, ntohl(ip_hdr->ip_src.s_addr), ntohl(ip_hdr->ip_dst.s_addr), len);
+		return true;
+	}
+	if (ip_hdr->ip_p == IPPROTO_ICMP) {
+		// ICMP Header
+		struct icmphdr *icmp_hdr = (struct icmphdr*) (packet + sizeof(struct ether_header) + size_ip);
+		collect->icmp.check_list(icmp_hdr, ntohl(ip_hdr->ip_src.s_addr), ntohl(ip_hdr->ip_dst.s_addr), len);
 		return true;
 	}
 	return false;

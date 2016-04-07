@@ -26,6 +26,7 @@
 #include "ip.hpp"
 #include "tcp.hpp"
 #include "udp.hpp"
+#include "icmp.hpp"
 
 // Get log4cpp logger from main programm
 extern log4cpp::Category& logger;
@@ -78,11 +79,12 @@ private:
 public:
 	rules_list<tcp_rule> tcp;
 	rules_list<udp_rule> udp;
+	rules_list<icmp_rule> icmp;
 
 	rcollection(boost::program_options::options_description& help_opt,
 				boost::program_options::options_description& tcp_opt,
-				boost::program_options::options_description& udp_opt/*,
-				boost::program_options::options_description& icmp_opt*/);
+				boost::program_options::options_description& udp_opt,
+				boost::program_options::options_description& icmp_opt);
 	rcollection(const rcollection& parent, bool clear = false);
 	bool operator!=(rcollection const & other) const;
 	rcollection& operator=(const rcollection& other);

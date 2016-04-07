@@ -190,6 +190,23 @@ void session<T>::parse()
 						collect_->udp.del_rule(num);
 					}
 				}
+				else if(t_cmd[2] == "ICMP")
+				{
+					if(t_cmd[0] == "add" && words > 4)
+					{
+						collect_->icmp.add_rule(icmp_rule(std::vector<std::string>(t_cmd.begin() + 3, t_cmd.end())));
+						return;
+					}
+					int num = std::stoi(t_cmd[3]);
+					if(t_cmd[0] == "insert" && words > 4)
+					{
+						collect_->icmp.insert_rule(num, icmp_rule(std::vector<std::string>(t_cmd.begin() + 4, t_cmd.end())));
+					}
+					if(t_cmd[0] == "del" && words == 4)
+					{
+						collect_->icmp.del_rule(num);
+					}
+				}
 				return;
 			}
 		}

@@ -180,5 +180,6 @@ std::string ip_rule::ip_rule_info()
 
 template class num_range<uint16_t>;
 template class num_range<uint32_t>;
+template class num_comparable<uint8_t>;
 template class num_comparable<uint16_t>;
 template class num_comparable<uint32_t>;

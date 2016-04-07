@@ -143,8 +143,8 @@ int main(int argc, char** argv) {
 	;
 	po::options_description icmp_opt("ICMP rule options");
 	icmp_opt.add_options()
-		("dport", po::value<std::string>(), "destination port")
-		("sport", po::value<std::string>(), "source port")
+		("type", po::value<std::string>(), "check if ICMP packet type = or > or < arg")
+		("code", po::value<std::string>(), "check if ICMP packet code = or > or < arg")
 	;
 
 	// Параметры для команды help(), собраны все опции
@@ -219,8 +219,10 @@ int main(int argc, char** argv) {
 	std::vector<std::shared_ptr<rcollection>> threads_coll;
 
 	// Эталонная колекция правил, по ней будут ровняться все потоки
-	auto main_collect = std::make_shared<rcollection>(help_opt, tcp_rule_opt,
-													  udp_rule_opt/*, icmp_rule_opt*/);
+	auto main_collect = std::make_shared<rcollection>(help_opt,
+													  tcp_rule_opt,
+													  udp_rule_opt,
+													  icmp_rule_opt);
 
 	// Очередь заданий для сработавших триггеров
 	auto  task_list = std::make_shared<ts_queue<action::job>>();
