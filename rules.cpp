@@ -97,7 +97,7 @@ void RulesList<T>::clear()
     rules_.clear();
 }
 template<class T>
-void RulesList<T>::del_rule(int num)
+void RulesList<T>::del_rule(const int& num)
 {
     boost::lock_guard<boost::shared_mutex> guard(m_);
     if(rules_.empty())
@@ -107,7 +107,7 @@ void RulesList<T>::del_rule(int num)
     rules_.erase(rules_.begin() + num);
 }
 template<class T>
-void RulesList<T>::insert_rule(int num, T rule)
+void RulesList<T>::insert_rule(const int& num, T rule)
 {
     rule.parse(parse_opt_);
     boost::lock_guard<boost::shared_mutex> guard(m_);
@@ -177,7 +177,7 @@ RulesCollection::RulesCollection(const RulesCollection& parent, bool clear)
         icmp.clear();
     }
 }
-bool RulesCollection::operator!=(RulesCollection const & other) const
+bool RulesCollection::operator!=(const RulesCollection& other) const
 {
     return !(tcp == other.tcp && udp == other.udp && icmp == other.icmp);
 }
@@ -219,7 +219,7 @@ std::string RulesCollection::get_rules()
     cnt += icmp.get_rules();
     return cnt;
 }
-bool RulesCollection::is_type(std::string type)
+bool RulesCollection::is_type(const std::string& type) const
 {
     if (std::find(types_.begin(), types_.end(), type) != types_.end())
     {
@@ -245,6 +245,9 @@ void RulesCollection::check_triggers(ts_queue<action::TriggerJob>& task_list)
 
 
 // class RulesFileLoader
+RulesFileLoader::RulesFileLoader(boost::asio::io_service& service,
+    const std::string& file, std::shared_ptr<RulesCollection>& c)
+    : sig_set_(service, SIGHUP), rules_config_file_(file), collect_(c) {}
 void RulesFileLoader::reload_config()
 {
     if(is_file_exist(rules_config_file_))
@@ -304,9 +307,6 @@ void RulesFileLoader::sig_hook(boost::asio::signal_set& this_set_,
         sig_set_.async_wait(boost::bind(&RulesFileLoader::sig_hook, this, boost::ref(sig_set_), _1, _2));
     }
 }
-RulesFileLoader::RulesFileLoader(boost::asio::io_service& service,
-    std::string file, std::shared_ptr<RulesCollection>& c)
-    : sig_set_(service, SIGHUP), rules_config_file_(file), collect_(c) {}
 void RulesFileLoader::start()
 {
     reload_config();
