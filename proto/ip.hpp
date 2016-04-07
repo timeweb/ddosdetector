@@ -21,8 +21,8 @@ struct ip_header_r
 	uint8_t ttl;
 	uint8_t protocol;
 	uint16_t checksum;
-	numrange<uint32_t> ip_src;
-	numrange<uint32_t> ip_dst;
+	num_range<uint32_t> ip_src;
+	num_range<uint32_t> ip_dst;
 	explicit ip_header_r(uint8_t proto);
 	void ip_header_parse(boost::program_options::variables_map& vm);
 };

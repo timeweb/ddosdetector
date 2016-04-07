@@ -14,8 +14,8 @@
 class udp_rule : public ip_header_r, public ip_rule
 {
 public:
-	numrange<uint16_t> src_port;
-	numrange<uint16_t> dst_port;
+	num_range<uint16_t> src_port;
+	num_range<uint16_t> dst_port;
 	num_comparable<uint16_t> len;
 	udp_rule();
 	explicit udp_rule(std::vector<std::string> tkn_rule);

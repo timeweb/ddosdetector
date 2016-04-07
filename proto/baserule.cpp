@@ -1,14 +1,14 @@
 #include "baserule.hpp"
 
-// class numrange
+// class num_range
 template<class T>
-numrange<T>::numrange()
+num_range<T>::num_range()
 	: start(0), end(0), enable(false) {}
 template<class T>
-numrange<T>::numrange(std::pair<T, T> p)
+num_range<T>::num_range(std::pair<T, T> p)
 	: start(p.first), end(p.second), enable(true) {}
 template<class T>
-bool numrange<T>::in_this(T& num) const
+bool num_range<T>::in_this(T& num) const
 {
 	if(!enable)
 		return true;
@@ -22,27 +22,27 @@ bool numrange<T>::in_this(T& num) const
 	}
 }
 template<class T>
-bool numrange<T>::stat() const
+bool num_range<T>::stat() const
 {
 	return enable;
 }
 template<class T>
-std::string numrange<T>::to_cidr()
+std::string num_range<T>::to_cidr()
 {
 	return boost::asio::ip::address_v4(start).to_string() + "-" + boost::asio::ip::address_v4(end).to_string();
 }
 template<class T>
-std::string numrange<T>::to_range()
+std::string num_range<T>::to_range()
 {
 	return std::to_string(start) + "-" + std::to_string(end);
 }
 template<class T>
-bool numrange<T>::operator==(numrange const & other) const
+bool num_range<T>::operator==(num_range const & other) const
 {
 	return (start==other.start && end==other.end);
 }
 template<class T>
-numrange<T>& numrange<T>::operator=(const std::pair<T, T>& p)
+num_range<T>& num_range<T>::operator=(const std::pair<T, T>& p)
 {
 	if(p.first != 0 || p.second != 0)
 	{
@@ -178,7 +178,7 @@ std::string ip_rule::ip_rule_info()
 	return info;
 }
 
-template class numrange<uint16_t>;
-template class numrange<uint32_t>;
+template class num_range<uint16_t>;
+template class num_range<uint32_t>;
 template class num_comparable<uint16_t>;
 template class num_comparable<uint32_t>;

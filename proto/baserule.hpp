@@ -10,21 +10,24 @@
 #include "../parser.hpp"
 
 template<class T>
-class numrange
+class num
+
+template<class T>
+class num_range
 {
 private:
 	T start;
 	T end;
 	bool enable;
 public:
-	numrange();
-	explicit numrange(std::pair<T, T> p);
+	num_range();
+	explicit num_range(std::pair<T, T> p);
 	bool in_this(T& num) const;
 	bool stat() const;
 	std::string to_cidr();
 	std::string to_range();
-	bool operator==(numrange const & other) const;
-	numrange& operator=(const std::pair<T, T>& p);
+	bool operator==(num_range const & other) const;
+	num_range& operator=(const std::pair<T, T>& p);
 };
 
 template<class T>

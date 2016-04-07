@@ -34,8 +34,8 @@ private:
 class tcp_rule : public ip_header_r, public ip_rule
 {
 public:
-	numrange<uint16_t> src_port;
-	numrange<uint16_t> dst_port;
+	num_range<uint16_t> src_port;
+	num_range<uint16_t> dst_port;
 	num_comparable<uint32_t> seq;
 	num_comparable<uint32_t> ack_seq;
 	num_comparable<uint16_t> win;
