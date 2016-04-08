@@ -5,7 +5,7 @@ PROGS = ddosdetector
 CLEANFILES = $(PROGS) *.o
 
 LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lpthread
-CPPFLAGS = -std=c++11 -Wall
+CPPFLAGS = -std=c++11 -Wall #-O2
 CPPFLAGS += -I ./sys -I ./proto
 
 TESTS_LDFLAGS = -lgtest_main -lgtest $(LDFLAGS)

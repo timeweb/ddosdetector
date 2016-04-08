@@ -4,7 +4,7 @@
 // Get log4cpp logger from main programm
 extern log4cpp::Category& logger;
 
-void init_logging(log4cpp::Category& logger, bool debug, std::string file)
+void init_logging(log4cpp::Category& logger, bool debug, const std::string& file)
 {
     // Log format
     log4cpp::PatternLayout *layout = new log4cpp::PatternLayout();
@@ -34,7 +34,7 @@ void init_logging(log4cpp::Category& logger, bool debug, std::string file)
 }
 
 #ifdef __linux__
-bool manage_interface_promisc_mode(std::string interface_name, bool switch_on) {
+bool manage_interface_promisc_mode(const std::string& interface_name, bool switch_on) {
     // We need really any socket for ioctl
     int fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -96,7 +96,7 @@ bool manage_interface_promisc_mode(std::string interface_name, bool switch_on) {
 #endif // __linux__
 
 
-std::string get_netmap_intf(std::string& intf)
+std::string get_netmap_intf(const std::string& intf)
 {
     if (intf.find("netmap:") == std::string::npos) {
         return "netmap:" + intf;
@@ -119,7 +119,7 @@ std::string format_len(const std::string& s, unsigned int len)
     return boost::str(boost::format(s_format) % s);
 }
 
-std::vector<std::string> tokenize(const std::string& input, separator_type& separator)
+std::vector<std::string> tokenize(const std::string& input, const separator_type& separator)
 {
     // Tokenize the intput.
     boost::tokenizer<separator_type> tokens(input, separator);

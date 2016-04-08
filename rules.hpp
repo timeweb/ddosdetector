@@ -72,7 +72,7 @@ public:
      удаление правила по номеру
      @param num: номер удаляемого правила в списке
     */
-    void del_rule(const int& num);
+    void del_rule(const int num);
     /*
      очистка списка правил
     */
@@ -83,7 +83,7 @@ public:
      @param num: позиция установки правила
      @param rule: добавляемое правило
     */
-    void insert_rule(const int& num, T rule);
+    void insert_rule(const int num, T rule);
     /*
      проверка пакета по правилам листа. Функция вызывается для каждого
      полученного пакета T типа.
@@ -93,8 +93,8 @@ public:
      @param len: размер пакета целиком (с ip и ethernet заголовками)
     */
     template<typename H>
-    void check_list(const H& l4header, const uint32_t& s_addr,
-                    const uint32_t& d_addr, const unsigned int& len)
+    void check_list(const H& l4header, const uint32_t s_addr,
+                    const uint32_t d_addr, const unsigned int len)
     {
         boost::lock_guard<boost::shared_mutex> guard(m_);
         for(auto& r: rules_)
@@ -120,9 +120,12 @@ public:
     boost::program_options::options_description get_params() const;
 private:
     mutable boost::shared_mutex m_;
-    std::vector<T> rules_; // вектор для хранения правил
-    boost::program_options::options_description parse_opt_; // опции парсинга правил
-    std::chrono::high_resolution_clock::time_point last_update_; // время последнего изменения данных в листе (изменение счетчиков)
+    // вектор для хранения правил
+    std::vector<T> rules_;
+    // опции парсинга правил
+    boost::program_options::options_description parse_opt_;
+    // время последнего изменения данных в листе (изменение счетчиков)
+    std::chrono::high_resolution_clock::time_point last_update_; 
 };
 
 /*
@@ -136,15 +139,23 @@ class RulesCollection
 {
 public:
     RulesCollection(boost::program_options::options_description& help_opt,
+                // опции TCP правил
                 boost::program_options::options_description& tcp_opt,
+                // опции UDP правил
                 boost::program_options::options_description& udp_opt,
+                // опции ICMP правил
                 boost::program_options::options_description& icmp_opt);
+    /*
+     конструктор копирования.
+     @param clear: если стоит true, то списки правил очищаются
+    */
     RulesCollection(const RulesCollection& parent, bool clear = false);
     bool operator!=(const RulesCollection& other) const;
     RulesCollection& operator=(const RulesCollection& other);
     RulesCollection& operator+=(RulesCollection& other);
     /*
-     формирует справку по всем параметрам всех типов правил (переменная help_opt).
+     формирует справку по всем параметрам всех типов правил (переменная
+     help_opt).
     */
     std::string get_help() const;
     /*
@@ -177,8 +188,8 @@ public:
 };
 
 /*
- класс загрузки/сохраненеи файла с правилами. Устанавливае signal_hook для перезагрузки
- конфигурации при получении сигнала SIGHUP.
+ класс загрузки/сохраненеи файла с правилами. Устанавливае signal_hook
+ для перезагрузки конфигурации при получении сигнала SIGHUP.
 */
 class RulesFileLoader
 {
@@ -202,8 +213,8 @@ private:
      асинхронный обработчик сигнала SIGHUP, вызывает функцию чтения данных
      из конфига reload_config()
     */
-    void sig_hook(boost::asio::signal_set& this_set_, boost::system::error_code error,
-        int signal_number);
+    void sig_hook(boost::asio::signal_set& this_set_,
+        boost::system::error_code error, int signal_number);
 };
 
 #endif // end RULES_HPP

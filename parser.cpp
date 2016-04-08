@@ -3,21 +3,14 @@
 namespace parser
 {
     namespace po = boost::program_options;
-    std::string CommandParser::join(std::vector<std::string>& v)
-    {
-        std::string res;
-        for(unsigned int i=0; i < v.size(); i++)
-        {
-            res += v[i] + " ";
-        }
-        return res;
-    }
-    CommandParser::CommandParser(po::options_description opt) : options_(opt) {}
-    void CommandParser::add_opt(po::options_description opt)
+    CommandParser::CommandParser(const po::options_description& opt)
+        : options_(opt) {}
+    void CommandParser::add_opt(const po::options_description& opt)
     {
         options_.add(opt);
     }
-    po::variables_map CommandParser::parse(std::vector<std::string> tokenize_input)
+    po::variables_map CommandParser::parse(
+        const std::vector<std::string>& tokenize_input)
     {
         //Parse mocked up tokenize_input.
         po::variables_map vm;
@@ -45,7 +38,17 @@ namespace parser
     {
         std::cout << options_ << "\n";
     }
+    std::string CommandParser::join(const std::vector<std::string>& v)
+    {
+        std::string res;
+        for(unsigned int i=0; i < v.size(); i++)
+        {
+            res += v[i] + " ";
+        }
+        return res;
+    }
 
+    // Функции parser::
     std::pair<uint32_t, uint32_t> range_from_ip_string(const std::string& ipstr)
     {
         try
@@ -110,11 +113,11 @@ namespace parser
         }
     }
 
-    std::string short_size(unsigned long int size, bool from_byte)
+    std::string to_short_size(unsigned long int size, bool its_byte)
     {
         unsigned int cur = 0;
         unsigned long int rem = 0;
-        size *= (from_byte ? 8 : 1); // convert to bits
+        size *= (its_byte ? 8 : 1); // convert to bits
 
         while (size >= 1000 && (cur < pref_b.size() && cur < pref_p.size())) {
             rem = size % 1000;
@@ -124,7 +127,7 @@ namespace parser
         double res = (float)size + (float)rem/1000;
         std::ostringstream ss;
         ss << std::fixed << std::setprecision(2) << res;
-        if(from_byte)
+        if(its_byte)
         {
             return ss.str() + pref_b[cur];
         }
@@ -134,7 +137,7 @@ namespace parser
         }
     }
 
-    uint64_t from_short_size(const std::string& size, bool to_byte)
+    uint64_t from_short_size(const std::string& size, bool its_byte)
     {
         size_t bad = 0;
         unsigned long int num;
@@ -152,7 +155,7 @@ namespace parser
         }
         std::string pref = size.substr(bad);
         int pos;
-        if(to_byte)
+        if(its_byte)
         {
             pos = get_index<std::string>(size_b, pref);
         }
@@ -164,7 +167,7 @@ namespace parser
         {
             num *= 1000;
         }
-        num /= (to_byte ? 8 : 1); // convert bit to bytes
+        num /= (its_byte ? 8 : 1); // convert bit to bytes
         return num;
     }
 

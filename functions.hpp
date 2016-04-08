@@ -25,18 +25,50 @@
 #include "log4cpp/Priority.hh"
 #include "log4cpp/PatternLayout.hh"
 
-void init_logging(log4cpp::Category& logger, bool debug, std::string file);
+/*
+ инициализация логера logger, определение уровня логирования и цели
+ куда будет писаться лог.
+ @param debug: режим отладки
+ @param file: файл куда писать лог, если =="", то вывод в консоль
+*/
+void init_logging(log4cpp::Category& logger, bool debug,
+                  const std::string& file);
+/*
+ переключение сетевой карты в режим promisc on
+*/
 #ifdef __linux__
-bool manage_interface_promisc_mode(std::string interface_name, bool switch_on);
+bool manage_interface_promisc_mode(const std::string& interface_name,
+                                   bool switch_on);
 #endif
-std::string get_netmap_intf(std::string& intf);
+/*
+ преобразует имя интерфейса в netmap формат, т.е. из eth5 сделает
+ netmap:eth5 как требуется для запуска nm_open() функции из библиотеки
+ Если в названии интерфейса уже есть "netmap:", то изменения не производятся
+*/
+std::string get_netmap_intf(const std::string& intf);
+/*
+ проверяет существует ли файл, проверка выполняется через unix stat
+*/
 bool is_file_exist(const std::string& file_name);
+/*
+ форматирует строку по определенной длинне для выравнивания вывода
+ @param s: строка
+ @param len: минимальная длинна выходной строки
+*/
 std::string format_len(const std::string& s, unsigned int len);
+/*
+ делит строку input на элементы по признаку separator и формирует
+ результат в vector<string>
+*/
 typedef boost::escaped_list_separator<char> separator_type;
-std::vector<std::string> tokenize(const std::string& input, separator_type& separator);
+std::vector<std::string> tokenize(const std::string& input,
+                                  const separator_type& separator);
 std::vector<std::string> tokenize(const std::string& input);
+/*
+ возвращает номер элемента value в списке vec, или вызывает исключение
+*/
 template<typename T>
-int get_index(std::vector<T> vec, T& value)
+int get_index(const std::vector<T>& vec, const T& value)
 {
     auto it = std::find(vec.begin(), vec.end(), value);
     if (it == vec.end())
