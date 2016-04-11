@@ -16,7 +16,7 @@
 #include "log4cpp/Priority.hh"
 
 #define NETMAP_WITH_LIBS
-//#define NETMAP_NO_DEBUG // Disable debug messages from Netmap
+#define NETMAP_NO_DEBUG // Disable debug messages from Netmap
 #include <net/netmap_user.h>
 #include <boost/thread.hpp>
 #include <boost/algorithm/string/replace.hpp>

@@ -15,7 +15,7 @@ void init_logging(log4cpp::Category& logger, bool debug, const std::string& file
     }
     else
     {
-        layout->setConversionPattern("%d %t %m%n");
+        layout->setConversionPattern("%d [%p] %m%n");
         logger.setPriority(log4cpp::Priority::INFO);
     }
     // Log destination
