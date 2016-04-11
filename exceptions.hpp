@@ -3,7 +3,6 @@
 
 #include <stdexcept>
 
-
 class ParserException: public std::exception
 {
 public:

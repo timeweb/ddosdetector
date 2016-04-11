@@ -3,9 +3,9 @@
 // class IcmpRule
 IcmpRule::IcmpRule()
     : Ipv4Rule(6), BaseRule() {}
-IcmpRule::IcmpRule(std::vector<std::string> tkn_rule)
+IcmpRule::IcmpRule(const std::vector<std::string>& tkn_rule)
     : Ipv4Rule(6), BaseRule(tkn_rule) {}
-void IcmpRule::parse(boost::program_options::options_description& opt)
+void IcmpRule::parse(const boost::program_options::options_description& opt)
 {
     parser::CommandParser cp(opt);
     boost::program_options::variables_map vm = cp.parse(tokenize_rule);
@@ -23,7 +23,8 @@ void IcmpRule::parse(boost::program_options::options_description& opt)
         code = parser::numcomp_from_string<uint8_t>(vm["code"].as<std::string>());
     }
 }
-bool IcmpRule::check_packet(struct icmphdr *icmp_hdr, uint32_t s_addr, uint32_t d_addr) const
+bool IcmpRule::check_packet(const struct icmphdr *icmp_hdr,
+    const uint32_t s_addr, const uint32_t d_addr) const
 {
     // L3 header check
     if(!ip_src.in_this(s_addr)) // check source ip address
@@ -72,7 +73,7 @@ IcmpRule& IcmpRule::operator+=( IcmpRule& other)
     }
     return *this;
 }
-std::string IcmpRule::make_info()
+std::string IcmpRule::make_info() const
 {
     std::string info = "icmp|"
                 + BaseRule_info() + "|"

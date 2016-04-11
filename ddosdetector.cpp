@@ -25,7 +25,7 @@ log4cpp::Category& logger = log4cpp::Category::getRoot();
 
 
 /*
-   Основной поток - watcher. Селедит за синхронизацией правил во всех
+   Основной поток - watcher. Следит за синхронизацией правил во всех
    потоках-обработчиках очередей сетевой карты, собирает данные со
    счетчиков правил каждого потока, вычисляет итоговые показатели, проверяет
    триггеры на срабатывание и добавляет задания на выполнение.
@@ -40,48 +40,69 @@ void watcher(std::vector<std::shared_ptr<RulesCollection>>& collect,
         int i = 0;
         for(auto& c: collect)
         {
-            if(*c != *main_collect) // если у потока неактуальная таблица правил
+            // проверка акутальности таблиц правил у потока
+            if(*c != *main_collect) 
             {
-                *c = *main_collect; // синхронизируем правила потока
+                // синхронизируем правила потока
+                *c = *main_collect; 
                 logger.debug("update rules list in thread %d", i);
             }
-            *main_collect += *c; // прибавляем счетчики i-того потока 
+            // прибавляем счетчики i-того потока
+            *main_collect += *c; 
             i++;
         }
-        main_collect->calc_delta(prev_collect); // вычисляем delta показатели за 1 секунду времени
-        prev_collect = *main_collect; // сохраняем новые счетчики и правила для следующего шага цикла
-        main_collect->check_triggers(*task_list); // проверяем триггеры
-
-        //std::cout << main_collect->get_rules();
+        // вычисляем delta показатели за 1 секунду времени
+        main_collect->calc_delta(prev_collect);
+        // сохраняем новые счетчики и правила для следующего шага цикла
+        prev_collect = *main_collect;
+        // проверяем триггеры
+        main_collect->check_triggers(*task_list); 
+        // на секунду запаем
         boost::this_thread::sleep_for(boost::chrono::seconds(1));
     }
 }
 
-// Сервер управления (TCP или UNIX socket)
+/*
+ Сервер управления controld (TCP или UNIX socket). Сервер привязывается к
+ заранее созданному io_service объекту, для общего контроля.
+*/
 void start_control(boost::asio::io_service& io_service,
     std::string port, std::shared_ptr<RulesCollection> collect)
 {
     try
     {
+        // инициализируем сервер
         ControlServer serv(io_service, port, collect);
+        // запускаем сервер
         io_service.run();
     }
     catch (std::exception& e)
     {
-        logger << log4cpp::Priority::ERROR << "Controld server error: " << e.what();
+        logger << log4cpp::Priority::ERROR
+               << "Controld server error: "
+               << e.what();
     }
 }
 
-// Обработчик очереди заданий
+/*
+ Обработчик очереди заданий. Разбирает очередь task_list в которой содержатся
+ задания TriggerJob и запускает их по очереди. Обработчик сразу реагирует на
+ добавление задания в очередь (условная переменная), либо ждет секунду (это
+ сделано для возможности прерывания процесса ожидания).
+*/
 void task_runner(std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
 {
+    // выполняемая задача
     action::TriggerJob cur_job;
     for(;;)
     {
-        boost::this_thread::interruption_point(); // Проверям был ли прерван поток
-        if(task_list->wait_and_pop(cur_job, 1000)) // ждем одну секунду или появления задачи
+        // Проверям был ли прерван поток
+        boost::this_thread::interruption_point();
+        // ждем одну секунду или появления задачи
+        if(task_list->wait_and_pop(cur_job, 1000)) 
         {
-            cur_job.run(); // старт задачи
+            // старт задачи
+            cur_job.run(); 
         }
     }
 }
@@ -184,38 +205,38 @@ int main(int argc, char** argv) {
         return 1; 
     } 
 
-    // Включение debug мода
+    // Включение debug режима
     if(vm.count("debug"))
         debug_mode = true;
 
     // Инициализация логирования
     init_logging(logger, debug_mode, log_file);
 
-// Включение promisc mode на сетевой карте (необходимо только в Linux)
+    // Включение promisc mode на сетевой карте (работает только в Linux)
 #ifdef __linux__
     manage_interface_promisc_mode(interface, 1);
     logger << log4cpp::Priority::WARN
-           << "Please disable all types of offload for this NIC manually: ethtool -K "
+           << "Please disable all types of offload for"
+           << "this NIC manually: ethtool -K "
            << interface
            << " gro off gso off tso off lro off";
 #endif  /* __linux__ */
 
-    // Экземпляр io_service, используется для отлова сигналов и работы сервера controld.
+    // Основной объект io_service, используется для отлова
+    // сигналов и работы сервера controld.
     boost::asio::io_service io_s;
 
     // Ловим сигналы  SIGINT, SIGTERM для завершения программы.
     boost::asio::signal_set signals(io_s, SIGINT, SIGTERM);
     signals.async_wait(boost::bind(&boost::asio::io_service::stop, &io_s));
 
-    /* Лист потоков. В этот лист буду добавляться все потоки программы,
-       для отслеживания состояния и корректного прерывания
-    */
+    // Лист потоков. В этот лист буду добавляться все потоки программы,
+    // для отслеживания состояния и корректного прерывания
     boost::thread_group threads;
 
-    /* Вектор указателей на листы правил. С каждым отдельным листом
-       правил работает один поток. Каждый лист синхронизируется потоком
-       watcher с эталонным листом main_collect.
-    */
+    // Вектор указателей на листы правил. С каждым отдельным листом
+    // правил работает один поток. Каждый лист синхронизируется потоком
+    // watcher с эталонным листом main_collect.
     std::vector<std::shared_ptr<RulesCollection>> threads_coll;
 
     // Эталонная колекция правил, по ней будут ровняться все потоки
@@ -227,7 +248,7 @@ int main(int argc, char** argv) {
     // Очередь заданий для сработавших триггеров
     auto  task_list = std::make_shared<ts_queue<action::TriggerJob>>();
 
-    // Загрузка конфигурации из файла
+    // Загрузка конфигурации из файла если он существует
     if(is_file_exist(config_file))
     {
         logger.info("Load configuration file " + config_file);
@@ -237,13 +258,15 @@ int main(int argc, char** argv) {
     // Загрузка правил из файла
     /*
         RulesFileLoader загружает текущий конфиг из файла при инициализации, а
-        также устанавливает новый signal_set для перехвата SIGHUP и обновления конфига
-        Каждый раз при попытке перезагрузить файл правил, выполняется проверка на
-        существование файла.
+        также устанавливает новый signal_set для перехвата SIGHUP и обновления
+        конфига. Каждый раз при попытке перезагрузить файл правил, выполняется
+        проверка на существование файла. Сигнал привязывается также к основному
+        io_service.
     */
     RulesFileLoader rul_loader(io_s, rules_file, main_collect);
     try
     {
+        // читаем конфиг в первый раз и привязываем сигнал
         rul_loader.start();
     }
     catch(std::exception& e)
@@ -251,10 +274,15 @@ int main(int argc, char** argv) {
         logger << log4cpp::Priority::CRIT << "Rules file loader failed: " << e.what();
         return 1;
     }
-    // Старт netmap интерфейса и запуск потоков обрабатывающих очереди сетевой карты
+    /*
+        Старт netmap интерфейса и запуск потоков обрабатывающих очереди сетевой
+        карты. Класс заполняет вектор листов правил (threads_coll) по мере
+        создания потоков привязанных к очередям сетевой карты.
+    */
     NetmapReceiver nm_recv(interface, threads, threads_coll, *main_collect);
     try
     {
+        // подключаемся к драйверу netmap, запускаем потоки-получатели пакетов
         nm_recv.start();
     }
     catch(NetmapException& e)
@@ -264,17 +292,19 @@ int main(int argc, char** argv) {
     }
 
     // старт потока наблюдателя
-    threads.add_thread(new boost::thread(watcher, std::ref(threads_coll), main_collect, task_list));
+    threads.add_thread(new boost::thread(watcher, std::ref(threads_coll),
+                                         main_collect, task_list));
     logger.info("Start watcher thread");
 
     // старт TCP сервера управления
-    threads.add_thread(new boost::thread(start_control, std::ref(io_s), port, main_collect));
+    threads.add_thread(new boost::thread(start_control,
+                                         std::ref(io_s), port, main_collect));
 
     // старт обработчика заданий триггеров
     threads.add_thread(new boost::thread(task_runner, task_list));
     logger.info("Starting runner thread");
 
-    // Ждме сигналы
+    // Ждем сигналы и подключения к TCP/UNIX серверу
     try
     {
         io_s.run();
@@ -284,10 +314,11 @@ int main(int argc, char** argv) {
         logger << log4cpp::Priority::ERROR << "Signal handler error: " << e.what();
     }
 
+    // Пойман сигнал завершения.
     // Завершение всех потоков
     threads.interrupt_all();
     logger.info("Waiting threads.....");
-    // Ожидаем корректное завершение всех потоков
+    // Ожидаем корректное завершение всех потоков и служб
     threads.join_all();
 
     return 0;

@@ -139,7 +139,7 @@ std::vector<std::string> tokenize(const std::string& input, const separator_type
 std::vector<std::string> tokenize(const std::string& input)
 {
     separator_type separator("\\",   // The escape characters.
-                            " ",    // The separator characters.
+                            " ",     // The separator characters.
                             "\"\'"); // The quote characters.
 
     return tokenize(input, separator);

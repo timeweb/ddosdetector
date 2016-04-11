@@ -4,8 +4,8 @@
 extern log4cpp::Category& logger;
 
 
-NetmapPoller::NetmapPoller(struct nm_desc* nmd)
-    : fds_{nmd->fd, POLLIN}, nifp_(nmd->nifp), rxring_(NETMAP_RXRING(nmd->nifp, 0)) {}
+NetmapPoller::NetmapPoller(const struct nm_desc* nmd)
+    : fds_{nmd->fd, POLLIN}, rxring_(NETMAP_RXRING(nmd->nifp, 0)) {}
 bool NetmapPoller::try_poll()
 {
     int poll_result = poll(&fds_, 1, 1000);
@@ -17,21 +17,10 @@ bool NetmapPoller::try_poll()
     }
     return true;
 }
-// bool NetmapPoller::check_ring(int ring_id)
-// {
-//  rxring = NETMAP_RXRING(nifp, ring_id);
-//  if (nm_ring_empty(rxring)) {
-//      return false;
-//  }
-//  return true;
-// }
-// struct netmap_ring* NetmapPoller::get_ring()
-// {
-//  return rxring;
-// }
 
 
-bool NetmapReceiver::check_packet(const u_char *packet, std::shared_ptr<RulesCollection>& collect, unsigned int len)
+bool NetmapReceiver::check_packet(const u_char *packet,
+    std::shared_ptr<RulesCollection>& collect, const unsigned int len)
 {
     // Decode Packet Header
 
@@ -107,8 +96,8 @@ void NetmapReceiver::netmap_thread(struct nm_desc* netmap_descriptor, int thread
 
 NetmapReceiver::NetmapReceiver(std::string interface, boost::thread_group& threads,
     std::vector<std::shared_ptr<RulesCollection>>& rules,
-    RulesCollection collection)
-    : intf_(interface), nm_rcv_threads_(threads), threads_rules_(rules), main_collect_(collection)
+    const RulesCollection& collection)
+    : intf_(interface), threads_(threads), threads_rules_(rules), main_collect_(collection)
 {
     netmap_intf_ = get_netmap_intf(intf_);
     /*
@@ -174,7 +163,7 @@ void NetmapReceiver::start()
         if (new_nmd == NULL) {
             throw NetmapException("open netmap interface '" + netmap_intf_ + "' failed.");
         }
-        nm_rcv_threads_.add_thread(new boost::thread(&NetmapReceiver::netmap_thread, this, new_nmd, i, r_ptr));
+        threads_.add_thread(new boost::thread(&NetmapReceiver::netmap_thread, this, new_nmd, i, r_ptr));
     }
 
     logger.debug("Start %d receive on interface %s", num_cpus_, netmap_intf_.c_str());

@@ -28,34 +28,70 @@
 // Get log4cpp logger from main programm
 extern log4cpp::Category& logger;
 
+/*
+ Класс-обработчик данных в одной очереди/потоке.
+ Содержит объекты с которыми работает один поток. 
+*/
 class NetmapPoller
 {
 public:
-    explicit NetmapPoller(struct nm_desc* nmd);
+    explicit NetmapPoller(const struct nm_desc* nmd);
     bool try_poll();
-    // bool check_ring(int ring_id);
-    // struct netmap_ring* get_ring();
 private:
+    // поллер для определения поступления данных
     struct pollfd fds_;
-    struct netmap_if* nifp_;
+    // кольцевая очередь с которой работает этот экземпляр поллера
     struct netmap_ring* rxring_;
 };
 
+/*
+ Класс запускающий процесс получения и обработки пакетов.
+ @param interface: сетевой интерфейс на котором запускается процесс
+ @param threads: ссылка на список потоков, в него добавляются потоки-обработчики
+                 пакетов
+ @param rules: вектор коллекций правил, в него добавляются коллекции созданные
+               для каждого отдельного потока. В дальнейшем этот вектор будет
+               обрабытываться потоком watcher.
+ @param collection: эталонная коллекция, с которой копируются потоковые
+                    колекции, чтобы потоковые коллекции создались с необходимыми
+                    параметрами.
+*/
 class NetmapReceiver
 {
 public:
-    NetmapReceiver(std::string interface, boost::thread_group& threads,
-        std::vector<std::shared_ptr<RulesCollection>>& rules, RulesCollection collection);
+    NetmapReceiver(const std::string interface,
+                   boost::thread_group& threads,
+                   std::vector<std::shared_ptr<RulesCollection>>& rules,
+                   const RulesCollection& collection);
+    // создание потоков-обработчиков, заполненеи vector rules
     void start();
 private:
+    /*
+     фукнция обработки пакета
+     @param packet: данные пакета начиная с Ethernet заголовка
+     @param collect: коллекция, по правилам которой пакет будет проверяться
+     @param len: длинна пакета (в байтах)
+    */
+    static bool check_packet(const u_char *packet,
+                             std::shared_ptr<RulesCollection>& collect,
+                             const unsigned int len);
+    // функция-обработчик запускаемая в потоке
+    void netmap_thread(struct nm_desc* netmap_descriptor,
+                       int thread_number,
+                       std::shared_ptr<RulesCollection> collect);
+
+    // сетевой интерфейс на котором запускается процесс обработки пакетов
     std::string intf_;
+    // netmap-имя интерфейса для запуска функций драйвера
     std::string netmap_intf_;
+    // количество доступных ядер процессора
     int num_cpus_;
-    boost::thread_group& nm_rcv_threads_;
+    // ссылка на список потоков программы
+    boost::thread_group& threads_;
+    // вектор коллекций правил
     std::vector<std::shared_ptr<RulesCollection>>& threads_rules_;
+    // эталонная коллекция, с которой копируются все остальные
     RulesCollection main_collect_;
-    static bool check_packet(const u_char *packet, std::shared_ptr<RulesCollection>& collect, unsigned int len);
-    void netmap_thread(struct nm_desc* netmap_descriptor, int thread_number, std::shared_ptr<RulesCollection> collect);
 };
 
 #endif // end COLLECTOR_HPP

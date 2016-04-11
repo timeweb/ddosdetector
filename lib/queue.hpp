@@ -7,8 +7,13 @@
 #include <condition_variable>
 #include <chrono>
 
+/*
+ Класс потокобезопасной очереди. При добавлении элемента оповещает один
+ "ожидающий" поток о том, что поступили данные. Либо ожидание элемента в
+ очереди длится timeout миллисекунд (чтобы была возможность прервать операцию).
+*/
 template<typename T>
-class ts_queue // threadsafe queue
+class ts_queue
 {
 private:
 	mutable std::mutex mut;

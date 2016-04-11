@@ -11,18 +11,30 @@
 #include "baserule.hpp"
 #include "ip.hpp"
 
+/*
+ Класс ICMP правил. Содержит проверяемые параметры пакета и также стандартный
+ набор методов для proto-класса.
+*/
 class IcmpRule : public Ipv4Rule, public BaseRule
 {
 public:
-    NumComparable<uint8_t> type;
-    NumComparable<uint8_t> code;
     IcmpRule();
-    explicit IcmpRule(std::vector<std::string> tkn_rule);
-    void parse(boost::program_options::options_description& opt);
-    bool check_packet(struct icmphdr *icmp_hdr, uint32_t s_addr, uint32_t d_addr) const;
-    bool operator==(IcmpRule const & other) const;
+    explicit IcmpRule(const std::vector<std::string>& tkn_rule);
+    bool operator==(const IcmpRule& other) const;
     IcmpRule& operator+=(IcmpRule& other);
-    std::string make_info();
+    // парсинг текстового представления правила по правилам opt
+    void parse(const boost::program_options::options_description& opt);
+    // проверка L4 заголовка пакета на совпадение с правилом
+    bool check_packet(const struct icmphdr *icmp_hdr,
+                      const uint32_t s_addr,
+                      const uint32_t d_addr) const;
+    // вывод информации по правилу: текстовое представление, счетчики, дельта
+    std::string make_info() const;
+
+    // ICMP packet type
+    NumComparable<uint8_t> type;
+    // ICMP packet code
+    NumComparable<uint8_t> code;
 };
 
 #endif // end ICMP_HPP

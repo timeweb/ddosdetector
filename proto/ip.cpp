@@ -4,7 +4,7 @@
 Ipv4Rule::Ipv4Rule(uint8_t proto)
     : ver_ihl(0), tos(0), length(0),
     identification(0), flag_offset(0), ttl(0), protocol(proto), checksum(0) {}
-void Ipv4Rule::ip_header_parse(boost::program_options::variables_map& vm)
+void Ipv4Rule::ip_header_parse(const boost::program_options::variables_map& vm)
 {
     if (vm.count("srcip")) {
         ip_src = parser::range_from_ip_string(vm["srcip"].as<std::string>());

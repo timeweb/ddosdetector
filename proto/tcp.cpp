@@ -2,8 +2,9 @@
 
 // class tcp_flags
 tcp_flags::tcp_flags()
-    : enable(false), bits_(std::string("000000")), mask_(std::string("000000")) {}
-tcp_flags::tcp_flags(std::pair<std::bitset<6>, std::bitset<6>> flags)
+    : enable(false), bits_(std::string("000000")),
+    mask_(std::string("000000")) {}
+tcp_flags::tcp_flags(const std::pair<std::bitset<6>, std::bitset<6>>& flags)
     : enable(true), bits_(flags.first), mask_(flags.second) {}
 bool tcp_flags::in_this(const std::bitset<6>& flags) const
 {
@@ -13,15 +14,17 @@ bool tcp_flags::in_this(const std::bitset<6>& flags) const
 }
 bool tcp_flags::operator==(tcp_flags const & other) const
 {
-    return (bits_ == other.bits_ && mask_ == other.mask_ && enable == other.enable);
+    return (bits_ == other.bits_
+            && mask_ == other.mask_
+            && enable == other.enable);
 }
 
 // class TcpRule
 TcpRule::TcpRule()
     : Ipv4Rule(6), BaseRule() {}
-TcpRule::TcpRule(std::vector<std::string> tkn_rule)
+TcpRule::TcpRule(const std::vector<std::string>& tkn_rule)
     : Ipv4Rule(6), BaseRule(tkn_rule) {}
-void TcpRule::parse(boost::program_options::options_description& opt)
+void TcpRule::parse(const boost::program_options::options_description& opt)
 {
     parser::CommandParser cp(opt);
     boost::program_options::variables_map vm = cp.parse(tokenize_rule);
@@ -56,10 +59,12 @@ void TcpRule::parse(boost::program_options::options_description& opt)
     }
     if (vm.count("tcp-flag")) {
         std::string flag_opt = vm["tcp-flag"].as<std::string>();
-        flags = parser::bitset_from_string<std::bitset<6>>(flag_opt, tcprule::accept_tcp_flags);
+        flags = parser::bitset_from_string<std::bitset<6>>(flag_opt,
+                                                    tcprule::accept_tcp_flags);
     }
 }
-bool TcpRule::check_packet(struct tcphdr *tcp_hdr, uint32_t s_addr, uint32_t d_addr) const
+bool TcpRule::check_packet(const struct tcphdr *tcp_hdr, const uint32_t s_addr,
+                           const uint32_t d_addr) const
 {
     // L3 header check
     if(!ip_src.in_this(s_addr)) // check source ip address

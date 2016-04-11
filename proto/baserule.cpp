@@ -5,10 +5,10 @@ template<class T>
 NumRange<T>::NumRange()
     : start_(0), end_(0), enable_(false) {}
 template<class T>
-NumRange<T>::NumRange(std::pair<T, T> p)
+NumRange<T>::NumRange(const std::pair<T, T>& p)
     : start_(p.first), end_(p.second), enable_(true) {}
 template<class T>
-bool NumRange<T>::in_this(T& num) const
+bool NumRange<T>::in_this(T num) const
 {
     if(!enable_)
         return true;
@@ -27,12 +27,12 @@ bool NumRange<T>::stat() const
     return enable_;
 }
 template<class T>
-std::string NumRange<T>::to_cidr()
+std::string NumRange<T>::to_cidr() const
 {
     return boost::asio::ip::address_v4(start_).to_string() + "-" + boost::asio::ip::address_v4(end_).to_string();
 }
 template<class T>
-std::string NumRange<T>::to_range()
+std::string NumRange<T>::to_range() const
 {
     return std::to_string(start_) + "-" + std::to_string(end_);
 }
@@ -61,7 +61,7 @@ template<class T>
 NumComparable<T>::NumComparable(const std::pair<T, unsigned short int>& p)
     : num_(p.first), enable_(true), type_(p.second) {}
 template<class T>
-bool NumComparable<T>::in_this(T& num) const
+bool NumComparable<T>::in_this(T num) const
 {
     if(!enable_)
         return true;
@@ -74,7 +74,7 @@ bool NumComparable<T>::in_this(T& num) const
     return false;
 }
 template<class T>
-std::string NumComparable<T>::to_str()
+std::string NumComparable<T>::to_str() const
 {
     return std::to_string(type_) + ":" + std::to_string(num_);
 }
@@ -98,11 +98,12 @@ BaseRule::BaseRule()
     pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
     bps_last_not_triggered(0), pps_trigger_period(10),
     bps_trigger_period(10) {}
-BaseRule::BaseRule(std::vector<std::string> tkn_rule)
-    : tokenize_rule(tkn_rule), count_packets(0), count_bytes(0), next_rule(false),
-    pps(0), bps(0), pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
-    bps_last_not_triggered(0), pps_trigger_period(10), bps_trigger_period(10) {}
-void BaseRule::BaseRule_parse(boost::program_options::variables_map& vm)
+BaseRule::BaseRule(const std::vector<std::string>& tkn_rule)
+    : count_packets(0), count_bytes(0), next_rule(false), pps(0), bps(0),
+    pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
+    bps_last_not_triggered(0), pps_trigger_period(10), bps_trigger_period(10),
+    tokenize_rule(tkn_rule) {}
+void BaseRule::BaseRule_parse(const boost::program_options::variables_map& vm)
 {
     if (vm.count("pps-th")) {
         pps_trigger = parser::from_short_size(vm["pps-th"].as<std::string>(), false);
@@ -169,7 +170,7 @@ bool BaseRule::is_triggered()
     }
     return false;
 }
-std::string BaseRule::BaseRule_info()
+std::string BaseRule::BaseRule_info() const
 {
     std::string info = std::to_string(count_packets) + "|"
                     + std::to_string(count_bytes) + "|"

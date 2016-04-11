@@ -3,7 +3,8 @@
 using namespace boost::asio;
 
 template<class T>
-ControlSession<T>::ControlSession(T socket, std::shared_ptr<RulesCollection> c)
+ControlSession<T>::ControlSession(T socket,
+        const std::shared_ptr<RulesCollection> c)
     : socket_(std::move(socket)), collect_(c)
 {
     memset(data_, 0, max_length);
@@ -22,8 +23,8 @@ void ControlSession<T>::start()
 template<class T>
 void ControlSession<T>::do_read()
 {
-    do_write(cli);
-    auto self(this->shared_from_this()); // Это делается для того, чтобы убедиться, что объект соединения переживет асинхронной операции: (. Т.е. асинхронной операция продолжается) до тех пор, как лямбда жив, экземпляр соединения жив, а также.
+    do_write(cli_);
+    auto self(this->shared_from_this());
     memset(data_, 0, max_length); // зануляем буфер
     socket_.async_read_some(buffer(data_, max_length-1),
         [this, self](boost::system::error_code ec, std::size_t length)
@@ -33,8 +34,9 @@ void ControlSession<T>::do_read()
                 cmd_ += std::string(data_);
                 if(cmd_.find('\n') != std::string::npos)
                 {
-                    for(char& c: bad_symbols) // удаляем символы \n \r и т.д.
-                        cmd_.erase(std::remove(cmd_.begin(), cmd_.end(), c), cmd_.end());
+                    for(char& c: bad_symbols_) // удаляем символы \n \r и т.д.
+                        cmd_.erase(std::remove(cmd_.begin(), cmd_.end(), c),
+                                   cmd_.end());
                     try
                     {
                         parse();
@@ -51,7 +53,7 @@ void ControlSession<T>::do_read()
     );
 }
 template<class T>
-void ControlSession<T>::do_read_signal() // TODO: добавить отлов сигнала Ctrl^D
+void ControlSession<T>::do_read_signal() // FUTURE: добавить отлов сигнала Ctrl^D
 {
     auto self(this->shared_from_this());
     memset(data_, 0, max_length);
@@ -60,17 +62,18 @@ void ControlSession<T>::do_read_signal() // TODO: добавить отлов с
         {
             if (!ec)
             {
-                if(*data_ == 0x04) // Catch Ctrl^D signal for stoping monitor commands
+                // Catch Ctrl^D signal for stoping monitor commands
+                if(*data_ == 0x04) 
                     throw;
             }
         }
     );
 }
 template<class T>
-void ControlSession<T>::do_write(std::string msg)
+void ControlSession<T>::do_write(const std::string& msg)
 {
     auto self(this->shared_from_this());
-    // memset(data_, 0, max_length); // зануляем буфер
+    // memset(data_, 0, max_length);
     // if(msg.length() > max_length)
     // {
     //  strncpy(data_, msg.substr(0, max_length).c_str(), max_length);
@@ -105,17 +108,8 @@ void ControlSession<T>::parse()
             throw 1;
         if(t_cmd[0] == "help" || t_cmd[0] == "?") // help || ?
         {
-            std::string help = "Console commands:";
-            help += "<type> - may be TCP, UDP or ICMP; <num> - number (0..65535);\n";
-            help += "  help                                show this help\n";
-            help += "  add rule <type> <rule>              add new rule\n";
-            help += "  insert rule <type> <num> <rule>     insert new rule by number\n";
-            help += "  del rule <type> <num>               add new rule\n";
-            help += "  show rules                          print all rules with counters\n";
-            help += "  reload rules                        reload all rules from file\n";
-            help += "  exit                                close connection\n";
-            help += "\n\n" + collect_->get_help();
-            do_write(help);
+            std::string h = help_ + "\n\n" + collect_->get_help();
+            do_write(h);
             return;
         }
     }
@@ -153,18 +147,32 @@ void ControlSession<T>::parse()
             if(t_cmd[1] == "rule") // add rules || del rules
             {
                 if(!collect_->is_type(t_cmd[2]))
-                    throw ParserException("Not found rule type '" + t_cmd[2] + "'");
+                    throw ParserException("Not found rule type '"
+                                          + t_cmd[2] + "'");
                 if(t_cmd[2] == "TCP")
                 {
                     if(t_cmd[0] == "add" && words > 4)
                     {
-                        collect_->tcp.add_rule(TcpRule(std::vector<std::string>(t_cmd.begin() + 3, t_cmd.end())));
+                        collect_->tcp.add_rule(
+                            TcpRule(
+                                std::vector<std::string>(
+                                    t_cmd.begin() + 3, t_cmd.end()
+                                )
+                            )
+                        );
                         return;
                     }
                     int num = std::stoi(t_cmd[3]);
                     if(t_cmd[0] == "insert" && words > 4)
                     {
-                        collect_->tcp.insert_rule(num, TcpRule(std::vector<std::string>(t_cmd.begin() + 4, t_cmd.end())));
+                        collect_->tcp.insert_rule(
+                            num,
+                            TcpRule(
+                                std::vector<std::string>(
+                                    t_cmd.begin() + 4, t_cmd.end()
+                                )
+                            )
+                        );
                     }
                     if(t_cmd[0] == "del" && words == 4)
                     {
@@ -175,13 +183,26 @@ void ControlSession<T>::parse()
                 {
                     if(t_cmd[0] == "add" && words > 4)
                     {
-                        collect_->udp.add_rule(UdpRule(std::vector<std::string>(t_cmd.begin() + 3, t_cmd.end())));
+                        collect_->udp.add_rule(
+                            UdpRule(
+                                std::vector<std::string>(
+                                    t_cmd.begin() + 3, t_cmd.end()
+                                )
+                            )
+                        );
                         return;
                     }
                     int num = std::stoi(t_cmd[3]);
                     if(t_cmd[0] == "insert" && words > 4)
                     {
-                        collect_->udp.insert_rule(num, UdpRule(std::vector<std::string>(t_cmd.begin() + 4, t_cmd.end())));
+                        collect_->udp.insert_rule(
+                            num,
+                            UdpRule(
+                                std::vector<std::string>(
+                                    t_cmd.begin() + 4, t_cmd.end()
+                                )
+                            )
+                        );
                     }
                     if(t_cmd[0] == "del" && words == 4)
                     {
@@ -192,13 +213,26 @@ void ControlSession<T>::parse()
                 {
                     if(t_cmd[0] == "add" && words > 4)
                     {
-                        collect_->icmp.add_rule(IcmpRule(std::vector<std::string>(t_cmd.begin() + 3, t_cmd.end())));
+                        collect_->icmp.add_rule(
+                            IcmpRule(
+                                std::vector<std::string>(
+                                    t_cmd.begin() + 3, t_cmd.end()
+                                )
+                            )
+                        );
                         return;
                     }
                     int num = std::stoi(t_cmd[3]);
                     if(t_cmd[0] == "insert" && words > 4)
                     {
-                        collect_->icmp.insert_rule(num, IcmpRule(std::vector<std::string>(t_cmd.begin() + 4, t_cmd.end())));
+                        collect_->icmp.insert_rule(
+                            num,
+                            IcmpRule(
+                                std::vector<std::string>(
+                                    t_cmd.begin() + 4, t_cmd.end()
+                                )
+                            )
+                        );
                     }
                     if(t_cmd[0] == "del" && words == 4)
                     {
@@ -208,11 +242,15 @@ void ControlSession<T>::parse()
                 return;
             }
         }
-        do_write("Error: unknown command '" + cmd_ + "'. Please print 'help'.\n");
+        do_write("Error: unknown command '"
+                 + cmd_
+                 + "'. Please print 'help'.\n");
     }
     catch(const std::invalid_argument& e)
     {
-        do_write("Error: invalid argument '" + std::string(e.what()) + "'. Please print 'help'.\n");
+        do_write("Error: invalid argument '"
+                 + std::string(e.what())
+                 + "'. Please print 'help'.\n");
     }
     catch(const ParserException& e)
     {
@@ -229,22 +267,23 @@ void ControlSession<T>::parse()
 }
 
 
-ControlServer::ControlServer(io_service& io_service, const std::string& p, std::shared_ptr<RulesCollection> c)
-    : unix_socket(true), port(p), collect_(c)
+ControlServer::ControlServer(io_service& io_service, const std::string& port,
+        std::shared_ptr<RulesCollection> collect)
+    : is_unix_socket_(true), port_(port), collect_(collect)
 {
     short num_port = 0;
     try
     {
-        num_port = boost::lexical_cast<short>(port);
-        unix_socket = false;
+        num_port = boost::lexical_cast<short>(port_);
+        is_unix_socket_ = false;
     }
     catch(boost::bad_lexical_cast &) {}
-    if(unix_socket)
+    if(is_unix_socket_)
     {
-        local::stream_protocol::endpoint ep(port);
+        local::stream_protocol::endpoint ep(port_);
         unix_acceptor_ = std::make_shared<local::stream_protocol::stream_protocol::acceptor>(io_service, ep);
         unix_socket_ = std::make_shared<local::stream_protocol::stream_protocol::socket>(io_service);
-        logger.info("Start controld unix socket server on " + port);
+        logger.info("Start controld unix socket server on " + port_);
         do_unix_accept();
     }
     else
@@ -258,9 +297,9 @@ ControlServer::ControlServer(io_service& io_service, const std::string& p, std::
 }
 ControlServer::~ControlServer()
 {
-    if(unix_socket && is_file_exist(port))
+    if(is_unix_socket_ && is_file_exist(port_))
     {
-        remove(port.c_str());
+        remove(port_.c_str());
     }
 }
 void ControlServer::do_tcp_accept()

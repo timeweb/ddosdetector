@@ -66,6 +66,8 @@ std::vector<std::string> tokenize(const std::string& input,
 std::vector<std::string> tokenize(const std::string& input);
 /*
  возвращает номер элемента value в списке vec, или вызывает исключение
+ @param vec: вектор в котором искать элемент
+ @param value: элемент который необходимо искать
 */
 template<typename T>
 int get_index(const std::vector<T>& vec, const T& value)

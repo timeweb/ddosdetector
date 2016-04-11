@@ -3,9 +3,9 @@
 // class UdpRule
 UdpRule::UdpRule()
     : Ipv4Rule(6), BaseRule() {}
-UdpRule::UdpRule(std::vector<std::string> tkn_rule)
+UdpRule::UdpRule(const std::vector<std::string>& tkn_rule)
     : Ipv4Rule(6), BaseRule(tkn_rule) {}
-void UdpRule::parse(boost::program_options::options_description& opt)
+void UdpRule::parse(const boost::program_options::options_description& opt)
 {
     parser::CommandParser cp(opt);
     boost::program_options::variables_map vm = cp.parse(tokenize_rule);
@@ -26,7 +26,8 @@ void UdpRule::parse(boost::program_options::options_description& opt)
         len = parser::numcomp_from_string<uint16_t>(vm["hlen"].as<std::string>());
     }
 }
-bool UdpRule::check_packet(struct udphdr *udp_hdr, uint32_t s_addr, uint32_t d_addr) const
+bool UdpRule::check_packet(const struct udphdr *udp_hdr,
+                           const uint32_t s_addr, const uint32_t d_addr) const
 {
     // L3 header check
     if(!ip_src.in_this(s_addr)) // check source ip address
@@ -81,7 +82,7 @@ UdpRule& UdpRule::operator+=( UdpRule& other)
     }
     return *this;
 }
-std::string UdpRule::make_info()
+std::string UdpRule::make_info() const
 {
     std::string info = "udp|"
                 + BaseRule_info() + "|"
