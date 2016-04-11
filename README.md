@@ -80,6 +80,7 @@ rmmod e1000e && insmod /usr/src/netmap/LINUX/e1000e/e1000e.ko
 /dev/netmap
 ```
 
+### Установка ddosdetector ###
 собираем ddosdetector:
 
 ```
