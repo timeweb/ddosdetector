@@ -6,7 +6,7 @@ RulesList<T>::RulesList(boost::program_options::options_description opt)
     : parse_opt_(opt), last_update_(std::chrono::high_resolution_clock::now())
 {}
 template<class T>
-bool RulesList<T>::operator==(RulesList const & other) const
+bool RulesList<T>::operator==(const RulesList& other) const
 {
     boost::lock(m_, other.m_);
     boost::lock_guard<boost::shared_mutex> g(m_, boost::adopt_lock);

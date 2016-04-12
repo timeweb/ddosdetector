@@ -40,7 +40,7 @@ class RulesList
 {
 public:
     explicit RulesList(boost::program_options::options_description opt);
-    bool operator==(RulesList const & other)  const;
+    bool operator==(const RulesList& other)  const;
     /*
      сравнение списка. В стравнение проверяется только rules_ и last_update_
     */
