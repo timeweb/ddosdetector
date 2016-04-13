@@ -100,12 +100,20 @@ NetmapReceiver::NetmapReceiver(std::string interface, boost::thread_group& threa
     : intf_(interface), threads_(threads), threads_rules_(rules), main_collect_(collection)
 {
     netmap_intf_ = get_netmap_intf(intf_);
+#if defined (__FreeBSD__)
+    int mib[2] = { CTL_HW, HW_NCPU };
+    size_t len = sizeof(mib);
+    sysctl(mib, 2, &num_cpus_, &len, NULL, 0);
+#elif defined(__linux__)
     /*
       количество ядер в системе (чтобы привязать каждую очередь
       сетевой карты к отдельному ядру).
       TODO: проверить std::thread::hardware_concurrency() верней?
     */
     num_cpus_ = sysconf(_SC_NPROCESSORS_ONLN);
+#else /* others */
+    num_cpus_ = 1;
+#endif
     logger.info("We have %d cpus", num_cpus_);
 }
 
