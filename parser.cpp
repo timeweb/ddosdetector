@@ -60,7 +60,7 @@ namespace parser
             {
                     std::string ip_part = ipstr.substr(0,found);
                     uint32_t ip = boost::asio::ip::address_v4::from_string(ip_part).to_ulong();
-                    int keepbits = std::stoi(ipstr.substr(found+1));
+                    int keepbits = std::atoi(ipstr.substr(found+1).c_str());
                     unsigned int mask = keepbits > 0 ? 0x00 - (1<<(32 - keepbits)) : 0xFFFFFFFF;
                     start_ip = ip & mask;
                     if( ip == 0 && mask == 0xFFFFFFFF)
@@ -98,12 +98,12 @@ namespace parser
             std::size_t found = portstr.find("-");
             if (found!=std::string::npos)
             {
-                start = std::stoi(portstr.substr(0,found));
-                end = std::stoi(portstr.substr(found+1));
+                start = std::atoi(portstr.substr(0,found).c_str());
+                end = std::atoi(portstr.substr(found+1).c_str());
             }
             else
             {
-                start = end = std::stoi(portstr);
+                start = end = std::atoi(portstr.c_str());
             }
             return std::make_pair(start, end);
         }
@@ -142,7 +142,8 @@ namespace parser
         size_t bad = 0;
         unsigned long int num;
         try
-        { 
+        {
+            //num = std::atoi(size.c_str());
             num = std::stoul(size, &bad);
         }
         catch(const std::invalid_argument& e)

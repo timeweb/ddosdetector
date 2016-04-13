@@ -37,7 +37,7 @@ RulesList<T>& RulesList<T>::operator+=(RulesList& other)
         boost::lock_guard<boost::shared_mutex> g_other(other.m_, boost::adopt_lock);
         if(rules_.size() == other.rules_.size())
         {
-            for(int i=0; i < rules_.size(); i++)
+            for(unsigned int i=0; i < rules_.size(); i++)
             {
                 // прибавляем счетчики правил из other, затем обнуляем счетчики в other
                 rules_[i] += other.rules_[i]; 
@@ -64,7 +64,7 @@ void RulesList<T>::calc_delta(const RulesList& rules_old)
             double delta_time = std::chrono::duration<double, std::milli>(
                 last_update_ - rules_old.last_update_).count();
             uint64_t delta_c = 0;
-            for(int i=0; i < rules_.size(); i++)
+            for(unsigned int i=0; i < rules_.size(); i++)
             {
                 // считаем дельту пакет/сек
                 delta_c = rules_[i].count_packets - rules_old.rules_[i].count_packets;
@@ -103,25 +103,25 @@ void RulesList<T>::clear()
     rules_.clear();
 }
 template<class T>
-void RulesList<T>::del_rule(const int num)
+void RulesList<T>::del_rule(const unsigned int num)
 {
     boost::lock_guard<boost::shared_mutex> guard(m_);
     if(rules_.empty())
         throw RuleException("rules list is empty");
     if(num < 0 || num > (rules_.size()-1))
-        throw RuleException("not found " + std::to_string(num) + " rule");
+        throw RuleException("not found " + to_string(num) + " rule");
     rules_.erase(rules_.begin() + num);
 }
 template<class T>
-void RulesList<T>::insert_rule(const int num, T rule)
+void RulesList<T>::insert_rule(const unsigned int num, T rule)
 {
     rule.parse(parse_opt_);
     boost::lock_guard<boost::shared_mutex> guard(m_);
     if(rules_.empty())
         throw RuleException("rules list is empty");
     if(num < 0 || num > (rules_.size()-1))
-        throw RuleException("incorrect number rule '" + std::to_string(num)
-            + "', it should be: 0 < num < " + std::to_string(rules_.size()));
+        throw RuleException("incorrect number rule '" + to_string(num)
+            + "', it should be: 0 < num < " + to_string(rules_.size()));
     // сдвигаем все элементы списка начиная с num-того
     // вперед и добавляем новый элемент
     std::vector<T> temp;
@@ -138,24 +138,24 @@ std::string RulesList<T>::get_rules()
     unsigned int max_text_size = 0;
     boost::format num_f("%5s"); // форматируем по ширине вывод номеров правил
     boost::shared_lock<boost::shared_mutex> guard(m_);
-    for (int i=0; i<rules_.size(); i++) // /находим самую длинную строку
+    for (unsigned int i=0; i<rules_.size(); i++) // /находим самую длинную строку
     {
         if(rules_[i].text_rule.length() > max_text_size)
         {
             max_text_size = rules_[i].text_rule.length();
         }
     }
-    for (int i=0; i<rules_.size(); i++)
+    for (unsigned int i=0; i<rules_.size(); i++)
     {
-        res += boost::str(num_f % std::to_string(i))
+        res += boost::str(num_f % to_string(i))
             + ":   "
             // форматируем ширину всех строк по самой длинной строке
             + format_len(rules_[i].text_rule, max_text_size)
             + "  : "
             + parser::to_short_size(rules_[i].pps, false) + " ("
             + parser::to_short_size(rules_[i].bps, true) + "), "
-            + std::to_string(rules_[i].count_packets) + " packets, "
-            + std::to_string(rules_[i].count_bytes) +  " bytes\n";
+            + to_string(rules_[i].count_packets) + " packets, "
+            + to_string(rules_[i].count_bytes) +  " bytes\n";
     }
     return res;
 }

@@ -114,7 +114,7 @@ bool is_file_exist(const std::string& file_name)
 std::string format_len(const std::string& s, unsigned int len)
 {
     std::string s_format = "%-"
-                        + std::to_string(len)
+                        + to_string(len)
                         + "s";
     return boost::str(boost::format(s_format) % s);
 }

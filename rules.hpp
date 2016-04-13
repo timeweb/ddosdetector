@@ -23,10 +23,10 @@
 #include "functions.hpp"
 
 // protocols
-#include "ip.hpp"
-#include "tcp.hpp"
-#include "udp.hpp"
-#include "icmp.hpp"
+#include "proto/ip.hpp"
+#include "proto/tcp.hpp"
+#include "proto/udp.hpp"
+#include "proto/icmp.hpp"
 
 // Get log4cpp logger from main programm
 extern log4cpp::Category& logger;
@@ -72,7 +72,7 @@ public:
      удаление правила по номеру
      @param num: номер удаляемого правила в списке
     */
-    void del_rule(const int num);
+    void del_rule(const unsigned int num);
     /*
      очистка списка правил
     */
@@ -83,7 +83,7 @@ public:
      @param num: позиция установки правила
      @param rule: добавляемое правило
     */
-    void insert_rule(const int num, T rule);
+    void insert_rule(const unsigned int num, T rule);
     /*
      проверка пакета по правилам листа. Функция вызывается для каждого
      полученного пакета T типа.

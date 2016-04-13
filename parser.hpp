@@ -6,6 +6,8 @@
 #include <sstream>
 #include <iomanip>
 #include <bitset>
+#include <string>
+#include <cstdlib>
 
 #include <boost/program_options.hpp>
 #include <boost/asio/ip/address.hpp>
@@ -112,6 +114,7 @@ namespace parser
         unsigned long int num;
         try
         {
+            //num = std::atoi(value.substr(1).c_str());
             num = std::stoul(value.substr(1), &bad);
         }
         catch(const std::invalid_argument& e)

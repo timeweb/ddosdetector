@@ -82,4 +82,12 @@ int get_index(const std::vector<T>& vec, const T& value)
     }
 }
 
+template <typename T>
+std::string to_string(T val)
+{
+    std::stringstream stream;
+    stream << val;
+    return stream.str();
+}
+
 #endif // end FUNCTIONS_HPP

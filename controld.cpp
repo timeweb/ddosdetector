@@ -162,7 +162,7 @@ void ControlSession<T>::parse()
                         );
                         return;
                     }
-                    int num = std::stoi(t_cmd[3]);
+                    int num = std::atoi(t_cmd[3].c_str());
                     if(t_cmd[0] == "insert" && words > 4)
                     {
                         collect_->tcp.insert_rule(
@@ -192,7 +192,7 @@ void ControlSession<T>::parse()
                         );
                         return;
                     }
-                    int num = std::stoi(t_cmd[3]);
+                    int num = std::atoi(t_cmd[3].c_str());
                     if(t_cmd[0] == "insert" && words > 4)
                     {
                         collect_->udp.insert_rule(
@@ -222,7 +222,7 @@ void ControlSession<T>::parse()
                         );
                         return;
                     }
-                    int num = std::stoi(t_cmd[3]);
+                    int num = std::atoi(t_cmd[3].c_str());
                     if(t_cmd[0] == "insert" && words > 4)
                     {
                         collect_->icmp.insert_rule(
@@ -291,7 +291,7 @@ ControlServer::ControlServer(io_service& io_service, const std::string& port,
         ip::tcp::tcp::endpoint ep(ip::tcp::tcp::v4(), num_port);
         tcp_acceptor_ = std::make_shared<ip::tcp::tcp::acceptor>(io_service, ep);
         tcp_socket_ = std::make_shared<ip::tcp::tcp::socket>(io_service);
-        logger.info("Start controld tcp server on " + std::to_string(num_port));
+        logger.info("Start controld tcp server on " + to_string(num_port));
         do_tcp_accept();
     }
 }
