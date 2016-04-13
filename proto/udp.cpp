@@ -35,13 +35,25 @@ bool UdpRule::check_packet(const struct udphdr *udp_hdr,
     if(!ip_dst.in_this(d_addr)) // check destination ip address
         return false;
     // L4 header check
+#if defined (__FreeBSD__)
+    uint16_t h_sport = ntohs(udp_hdr->uh_sport);
+#elif defined (__linux__)
     uint16_t h_sport = ntohs(udp_hdr->source);
+#endif
     if(!src_port.in_this(h_sport))
         return false;
+#if defined (__FreeBSD__)
+    uint16_t h_dport = ntohs(udp_hdr->uh_dport);
+#elif defined (__linux__)
     uint16_t h_dport = ntohs(udp_hdr->dest);
+#endif
     if(!dst_port.in_this(h_dport))
         return false;
+#if defined (__FreeBSD__)
+    uint16_t h_len = udp_hdr->uh_ulen;
+#elif defined (__linux__)
     uint16_t h_len = udp_hdr->len;
+#endif
     if(!len.in_this(h_len))
         return false;
 

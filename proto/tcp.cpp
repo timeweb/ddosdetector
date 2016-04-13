@@ -72,26 +72,53 @@ bool TcpRule::check_packet(const struct tcphdr *tcp_hdr, const uint32_t s_addr,
     if(!ip_dst.in_this(d_addr)) // check destination ip address
         return false;
     // L4 header check
+#if defined (__FreeBSD__)
+    uint16_t h_sport = ntohs(tcp_hdr->th_sport);
+#elif defined(__linux__)
     uint16_t h_sport = ntohs(tcp_hdr->source);
+#endif
     if(!src_port.in_this(h_sport))
         return false;
+#if defined (__FreeBSD__)
+    uint16_t h_dport = ntohs(tcp_hdr->th_dport);
+#elif defined(__linux__)
     uint16_t h_dport = ntohs(tcp_hdr->dest);
+#endif
     if(!dst_port.in_this(h_dport))
         return false;
+#if defined (__FreeBSD__)
+    uint32_t h_seq = ntohl(tcp_hdr->th_seq);
+#elif defined(__linux__)
     uint32_t h_seq = ntohl(tcp_hdr->seq);
+#endif
     if(!seq.in_this(h_seq))
         return false;
+#if defined (__FreeBSD__)
+    uint32_t h_ack = ntohl(tcp_hdr->th_ack);
+#elif defined(__linux__)
     uint32_t h_ack = ntohl(tcp_hdr->ack_seq);
+#endif
     if(!ack_seq.in_this(h_ack))
         return false;
+#if defined (__FreeBSD__)
+    uint16_t h_win = ntohs(tcp_hdr->th_win);
+#elif defined(__linux__)
     uint16_t h_win = ntohs(tcp_hdr->window);
+#endif
     if(!win.in_this(h_win))
         return false;
+#if defined (__FreeBSD__)
+    uint16_t h_len = tcp_hdr->th_off * 4;
+#elif defined(__linux__)
     uint16_t h_len = tcp_hdr->doff * 4;
+#endif
     if(!len.in_this(h_len))
         return false;
     if(flags.enable)
     {
+#if defined (__FreeBSD__)
+        std::bitset<6> h_flags(tcp_hdr->th_flags);
+#elif defined(__linux__)
         std::bitset<6> h_flags;
         h_flags[0] = tcp_hdr->urg;
         h_flags[1] = tcp_hdr->ack;
@@ -99,6 +126,7 @@ bool TcpRule::check_packet(const struct tcphdr *tcp_hdr, const uint32_t s_addr,
         h_flags[3] = tcp_hdr->rst;
         h_flags[4] = tcp_hdr->syn;
         h_flags[5] = tcp_hdr->fin;
+#endif
         if(!flags.in_this(h_flags))
             return false;
     }

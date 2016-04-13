@@ -3,6 +3,9 @@
 
 #include <iostream>
 #include <vector>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 
 #include <boost/program_options.hpp>
 

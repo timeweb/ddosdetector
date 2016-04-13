@@ -32,10 +32,18 @@ bool IcmpRule::check_packet(const struct icmphdr *icmp_hdr,
     if(!ip_dst.in_this(d_addr)) // check destination ip address
         return false;
     // L4 header check
+#if defined (__FreeBSD__)
+    uint8_t h_type = icmp_hdr->icmp_type;
+#elif defined (__linux__)
     uint8_t h_type = icmp_hdr->type;
+#endif
     if(!type.in_this(h_type))
         return false;
+#if defined (__FreeBSD__)
+    uint8_t h_code = icmp_hdr->icmp_code;
+#elif defined (__linux__)
     uint8_t h_code = icmp_hdr->code;
+#endif
     if(!code.in_this(h_code))
         return false;
 
