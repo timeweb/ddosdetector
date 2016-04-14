@@ -1,5 +1,5 @@
 UNAME_S := $(shell uname -s)
-CXX = g++-48
+CXX = g++-4.8
 
 PROGS = ddosdetector
 CLEANFILES = $(PROGS) *.o
