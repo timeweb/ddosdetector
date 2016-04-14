@@ -212,6 +212,12 @@ int main(int argc, char** argv) {
     // Инициализация логирования
     init_logging(logger, debug_mode, log_file);
 
+    if(!vm.count("interface"))
+    {
+        logger << log4cpp::Priority::CRIT << "Interface '-i' not set";
+        exit(1);
+    }
+
     // Включение promisc mode на сетевой карте (работает только в Linux)
 #ifdef __linux__
     manage_interface_promisc_mode(interface, 1);
