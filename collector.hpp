@@ -41,11 +41,20 @@ class NetmapPoller
 public:
     explicit NetmapPoller(const struct nm_desc* nmd);
     bool try_poll();
+    u_char* get_buff_from_ring();
+    void set_forward();
+    void next();
+    ~NetmapPoller();
+
+    unsigned int buff_len;
 private:
     // поллер для определения поступления данных
     struct pollfd fds_;
+        // id еукущего слота в кольцевой очереди
+    unsigned int cur_slot_id_;
     // кольцевая очередь с которой работает этот экземпляр поллера
     struct netmap_ring* rxring_;
+
 };
 
 /*

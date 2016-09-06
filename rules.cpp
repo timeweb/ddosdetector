@@ -110,7 +110,7 @@ void RulesList<T>::del_rule(const unsigned int num)
     boost::lock_guard<boost::shared_mutex> guard(m_);
     if(rules_.empty())
         throw RuleException("rules list is empty");
-    if(num < 0 || num > (rules_.size()-1))
+    if(num > (rules_.size()-1))
         throw RuleException("not found " + to_string(num) + " rule");
     rules_.erase(rules_.begin() + num);
 }
@@ -121,7 +121,7 @@ void RulesList<T>::insert_rule(const unsigned int num, T rule)
     boost::lock_guard<boost::shared_mutex> guard(m_);
     if(rules_.empty())
         throw RuleException("rules list is empty");
-    if(num < 0 || num > (rules_.size()-1))
+    if(num > (rules_.size()-1))
         throw RuleException("incorrect number rule '" + to_string(num)
             + "', it should be: 0 < num < " + to_string(rules_.size()));
     // сдвигаем все элементы списка начиная с num-того
@@ -174,10 +174,12 @@ RulesCollection::RulesCollection(
                         boost::program_options::options_description& udp_opt,
                         boost::program_options::options_description& icmp_opt)
     : types_({"TCP", "UDP", "ICMP"}), help_(help_opt),
-      tcp(tcp_opt), udp(udp_opt), icmp(icmp_opt) {}
+      tcp(tcp_opt), udp(udp_opt), icmp(icmp_opt),
+      last_change(std::chrono::high_resolution_clock::now()) {}
 RulesCollection::RulesCollection(const RulesCollection& parent, bool clear)
     : types_({"TCP", "UDP", "ICMP"}), tcp(parent.tcp.get_params()),
-      udp(parent.udp.get_params()), icmp(parent.icmp.get_params()) 
+      udp(parent.udp.get_params()), icmp(parent.icmp.get_params()),
+      last_change(std::chrono::high_resolution_clock::now())
 {
     tcp = parent.tcp;
     udp = parent.udp;
@@ -188,6 +190,7 @@ RulesCollection::RulesCollection(const RulesCollection& parent, bool clear)
         udp.clear();
         icmp.clear();
     }
+    last_change = std::chrono::high_resolution_clock::now();
 }
 bool RulesCollection::operator!=(const RulesCollection& other) const
 {
@@ -201,6 +204,7 @@ RulesCollection& RulesCollection::operator=(const RulesCollection& other)
         tcp = other.tcp;
         udp = other.udp;
         icmp = other.icmp;
+        last_change = std::chrono::high_resolution_clock::now();
     }
     return *this;
 }
