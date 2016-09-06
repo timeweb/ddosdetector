@@ -10,7 +10,7 @@ namespace action
         std::ofstream ofs(to, std::ios::out | std::ios::app);
         if(ofs)
         {
-            ofs << "trigger alarm: " << data << "\n";
+            ofs << "ddosdetector trigger alarm: " << data << "\n";
         }
         else
         {
@@ -43,7 +43,7 @@ namespace action
             << "JOB_SYSLOG: "
             << to << " "
             << data;
-        syslog(LOG_DAEMON, "trigger alarm: %s", data.c_str());
+        syslog(LOG_DAEMON, "ddosdetector trigger alarm: %s", data.c_str());
     }
 
     // map of types job

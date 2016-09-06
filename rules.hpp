@@ -186,6 +186,7 @@ public:
     RulesList<TcpRule> tcp; // лист правил для TCP
     RulesList<UdpRule> udp; // лист правил для UDP
     RulesList<IcmpRule> icmp; // лист правил для ICMP
+    std::chrono::high_resolution_clock::time_point last_change;
 };
 
 /*
