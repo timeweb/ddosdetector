@@ -5,7 +5,8 @@ extern log4cpp::Category& logger;
 
 
 NetmapPoller::NetmapPoller(const struct nm_desc* nmd)
-    : fds_{nmd->fd, POLLIN}, rxring_(NETMAP_RXRING(nmd->nifp, 0)) {}
+    : buff_len(0), fds_{nmd->fd, POLLIN}, cur_slot_id_(0),
+    rxring_(NETMAP_RXRING(nmd->nifp, nmd->first_rx_ring)) {}
 bool NetmapPoller::try_poll()
 {
     int poll_result = poll(&fds_, 1, 1000);
@@ -17,7 +18,33 @@ bool NetmapPoller::try_poll()
     }
     return true;
 }
-
+u_char* NetmapPoller::get_buff_from_ring()
+{
+    rxring_->flags |= NR_FORWARD;
+    rxring_->flags |= NR_TIMESTAMP;
+    if (nm_ring_empty(rxring_)) {
+        return NULL;
+    }
+    cur_slot_id_ = rxring_->cur;
+    // Get packet data
+    u_int idx = rxring_->slot[cur_slot_id_].buf_idx;
+    buff_len = rxring_->slot[cur_slot_id_].len;
+    return (u_char *)NETMAP_BUF(rxring_, idx);
+}
+void NetmapPoller::set_forward()
+{
+    rxring_->slot[cur_slot_id_].flags |= NS_FORWARD;
+}
+void NetmapPoller::next()
+{
+    rxring_->cur = nm_ring_next(rxring_, cur_slot_id_);
+    rxring_->head = rxring_->cur;
+}
+NetmapPoller::~NetmapPoller()
+{
+    rxring_ = NULL;
+    delete rxring_;
+}
 
 bool NetmapReceiver::check_packet(const u_char *packet,
     std::shared_ptr<RulesCollection>& collect, const unsigned int len)
@@ -45,51 +72,69 @@ bool NetmapReceiver::check_packet(const u_char *packet,
 
     if (ip_hdr->ip_p == IPPROTO_TCP) {
         // TCP Header
-        struct tcphdr *tcp_hdr = (struct tcphdr*) (packet + sizeof(struct ether_header) + size_ip);
-        collect->tcp.check_list(tcp_hdr, ntohl(ip_hdr->ip_src.s_addr), ntohl(ip_hdr->ip_dst.s_addr), len);
-        return true;
+        struct tcphdr *tcp_hdr = (struct tcphdr*) (packet +
+                                                   sizeof(struct ether_header) +
+                                                   size_ip);
+        return collect->tcp.check_list(tcp_hdr,
+                                       ntohl(ip_hdr->ip_src.s_addr),
+                                       ntohl(ip_hdr->ip_dst.s_addr),
+                                       len);
     }
     if (ip_hdr->ip_p == IPPROTO_UDP) {
         // UDP Header
-        struct udphdr *udp_hdr = (struct udphdr*) (packet + sizeof(struct ether_header) + size_ip);
-        collect->udp.check_list(udp_hdr, ntohl(ip_hdr->ip_src.s_addr), ntohl(ip_hdr->ip_dst.s_addr), len);
-        return true;
+        struct udphdr *udp_hdr = (struct udphdr*) (packet +
+                                                   sizeof(struct ether_header) +
+                                                   size_ip);
+        return collect->udp.check_list(udp_hdr,
+                                       ntohl(ip_hdr->ip_src.s_addr),
+                                       ntohl(ip_hdr->ip_dst.s_addr),
+                                       len);
     }
     if (ip_hdr->ip_p == IPPROTO_ICMP) {
         // ICMP Header
-        struct icmphdr *icmp_hdr = (struct icmphdr*) (packet + sizeof(struct ether_header) + size_ip);
-        collect->icmp.check_list(icmp_hdr, ntohl(ip_hdr->ip_src.s_addr), ntohl(ip_hdr->ip_dst.s_addr), len);
-        return true;
+        struct icmphdr *icmp_hdr = (struct icmphdr*) (packet +
+                                                      sizeof(struct ether_header) +
+                                                      size_ip);
+        return collect->icmp.check_list(icmp_hdr,
+                                        ntohl(ip_hdr->ip_src.s_addr),
+                                        ntohl(ip_hdr->ip_dst.s_addr),
+                                        len);
     }
     return false;
 }
 
-void NetmapReceiver::netmap_thread(struct nm_desc* netmap_descriptor, int thread_number,
+void NetmapReceiver::netmap_thread(struct nm_desc* nm_descr, int thread_number,
     std::shared_ptr<RulesCollection> collect)
 {
-    struct nm_pkthdr h;
     u_char* buf;
 
-    logger.debug("Reading from fd %d thread id: %d", netmap_descriptor->fd, thread_number);
-
-    NetmapPoller poller(netmap_descriptor);
+    logger.debug("Reading from fd %d thread id: %d", nm_descr->fd, thread_number);
+    NetmapPoller poller(nm_descr);
     try
     {
         for (;;)
-        {   
-            boost::this_thread::interruption_point(); // Проверям был ли прерван поток
-            // We will wait 1000 microseconds for retry, for infinite timeout please use -1
+        {   // Проверям был ли прерван поток
+            boost::this_thread::interruption_point(); 
+            // ждем 1000 микросекунд и проверяем появились ли данные
             if(poller.try_poll())
             {
-                while ( (buf = nm_nextpkt(netmap_descriptor, &h)) ) {
-                    check_packet(buf, collect, h.len);
+                // получаем данные пакетов
+                while( (buf = poller.get_buff_from_ring()) )
+                {
+                    // если пакет подпадает под правило, то перерасываем его
+                    // в host stack для ОС
+                    if(check_packet(buf, collect, poller.buff_len))
+                    {
+                        poller.set_forward();
+                    }
+                    poller.next();
                 }
             }
         }
     }
     catch(...)
     {
-        nm_close(netmap_descriptor);
+        nm_close(nm_descr);
         logger.debug("Thread %d closed", thread_number);
     }
 }
@@ -97,7 +142,8 @@ void NetmapReceiver::netmap_thread(struct nm_desc* netmap_descriptor, int thread
 NetmapReceiver::NetmapReceiver(std::string interface, boost::thread_group& threads,
     std::vector<std::shared_ptr<RulesCollection>>& rules,
     const RulesCollection& collection)
-    : intf_(interface), threads_(threads), threads_rules_(rules), main_collect_(collection)
+    : intf_(interface), threads_(threads), threads_rules_(rules),
+    main_collect_(collection)
 {
     netmap_intf_ = get_netmap_intf(intf_);
 #if defined (__FreeBSD__)

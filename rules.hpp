@@ -93,7 +93,7 @@ public:
      @param len: размер пакета целиком (с ip и ethernet заголовками)
     */
     template<typename H>
-    void check_list(const H& l4header, const uint32_t s_addr,
+    bool check_list(const H& l4header, const uint32_t s_addr,
                     const uint32_t d_addr, const unsigned int len)
     {
         boost::lock_guard<boost::shared_mutex> guard(m_);
@@ -106,10 +106,11 @@ public:
                 r.dst_top.increase(d_addr);
                 if(!r.next_rule)
                 {
-                    break;
+                    return true;
                 }
             }
         }
+        return false;
     }
     /*
      вывод текстового представления правил и статистики.

@@ -110,7 +110,7 @@ void RulesList<T>::del_rule(const unsigned int num)
     boost::lock_guard<boost::shared_mutex> guard(m_);
     if(rules_.empty())
         throw RuleException("rules list is empty");
-    if(num < 0 || num > (rules_.size()-1))
+    if(num > (rules_.size()-1))
         throw RuleException("not found " + to_string(num) + " rule");
     rules_.erase(rules_.begin() + num);
 }
@@ -121,7 +121,7 @@ void RulesList<T>::insert_rule(const unsigned int num, T rule)
     boost::lock_guard<boost::shared_mutex> guard(m_);
     if(rules_.empty())
         throw RuleException("rules list is empty");
-    if(num < 0 || num > (rules_.size()-1))
+    if(num > (rules_.size()-1))
         throw RuleException("incorrect number rule '" + to_string(num)
             + "', it should be: 0 < num < " + to_string(rules_.size()));
     // сдвигаем все элементы списка начиная с num-того

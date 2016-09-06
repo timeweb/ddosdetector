@@ -182,7 +182,7 @@ TcpRule& TcpRule::operator+=( TcpRule& other)
     }
     return *this;
 }
-std::string TcpRule::make_info()
+std::string TcpRule::make_info() const
 {
     std::string info = "tcp|"
                 + BaseRule_info()/* + "|"

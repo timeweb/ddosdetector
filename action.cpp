@@ -90,7 +90,7 @@ namespace action
 
     TriggerJob::TriggerJob()
         : Action(), data_("") {}
-    TriggerJob::TriggerJob(const Action& a, const std::string d)
+    TriggerJob::TriggerJob(const Action& a, const std::string& d)
         : Action(a), data_(d) {}
     void TriggerJob::run()
     {
