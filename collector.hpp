@@ -40,11 +40,11 @@ class NetmapPoller
 {
 public:
     explicit NetmapPoller(const struct nm_desc* nmd);
+    ~NetmapPoller();
     bool try_poll();
     u_char* get_buff_from_ring();
     void set_forward();
     void next();
-    ~NetmapPoller();
 
     unsigned int buff_len;
 private:
@@ -76,6 +76,7 @@ public:
                    boost::thread_group& threads,
                    std::vector<std::shared_ptr<RulesCollection>>& rules,
                    const RulesCollection& collection);
+    ~NetmapReceiver();
     // создание потоков-обработчиков, заполненеи vector rules
     void start();
 private:
@@ -105,6 +106,8 @@ private:
     std::vector<std::shared_ptr<RulesCollection>>& threads_rules_;
     // эталонная коллекция, с которой копируются все остальные
     RulesCollection main_collect_;
+    // указатель на основной netmap descriptor
+    struct nm_desc* main_nmd_;
 };
 
 #endif // end COLLECTOR_HPP

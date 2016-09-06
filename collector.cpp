@@ -162,10 +162,13 @@ NetmapReceiver::NetmapReceiver(std::string interface, boost::thread_group& threa
 #endif
     logger.info("We have %d cpus", num_cpus_);
 }
+NetmapReceiver::~NetmapReceiver()
+{
+    nm_close(main_nmd_);
+}
 
 void NetmapReceiver::start()
 {
-    struct nm_desc* main_nmd;
     struct nmreq base_nmd;
     bzero(&base_nmd, sizeof(base_nmd));
 
@@ -173,17 +176,17 @@ void NetmapReceiver::start()
     base_nmd.nr_tx_rings = base_nmd.nr_rx_rings = 0;
     base_nmd.nr_tx_slots = base_nmd.nr_rx_slots = 0;
 
-    main_nmd = nm_open(netmap_intf_.c_str(), &base_nmd, 0, NULL);
+    main_nmd_ = nm_open(netmap_intf_.c_str(), &base_nmd, 0, NULL);
 
-    if (main_nmd == NULL) {
+    if (main_nmd_ == NULL) {
         throw NetmapException("open netmap interface '" + netmap_intf_ + "' failed.");
     }
 
-    logger.debug("Mapped %dKB memory at %p", main_nmd->req.nr_memsize >> 10, main_nmd->mem);
-    logger.debug("We have %d tx and %d rx rings", main_nmd->req.nr_tx_rings,
-        main_nmd->req.nr_rx_rings);
+    logger.debug("Mapped %dKB memory at %p", main_nmd_->req.nr_memsize >> 10, main_nmd_->mem);
+    logger.debug("We have %d tx and %d rx rings", main_nmd_->req.nr_tx_rings,
+        main_nmd_->req.nr_rx_rings);
 
-    int num_rings = main_nmd->req.nr_rx_rings;
+    int num_rings = main_nmd_->req.nr_rx_rings;
     if (num_rings > num_cpus_)
     {
         logger.warn("number of ring queues (%d) greater than the number of processor cores (%d), the collector may not work best", num_rings, num_cpus_);
@@ -204,7 +207,7 @@ void NetmapReceiver::start()
         auto r_ptr = std::make_shared<RulesCollection>(main_collect_);
         threads_rules_.push_back(r_ptr);
 
-        struct nm_desc nmd = *main_nmd;
+        struct nm_desc nmd = *main_nmd_;
         // This operation is VERY important!
         nmd.self = &nmd;
 
