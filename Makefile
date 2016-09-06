@@ -4,7 +4,7 @@ CXX = g++-4.8
 PROGS = ddosdetector
 CLEANFILES = $(PROGS) *.o
 
-LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lpthread
+LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options
 CPPFLAGS = -std=c++11 -Wall #-O2
 CPPFLAGS += -I ./sys -I ./proto
 
