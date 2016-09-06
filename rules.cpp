@@ -87,6 +87,8 @@ void RulesList<T>::check_triggers(ts_queue<action::TriggerJob>& task_list)
             // добавляем задание триггера в очередь обработчика заданий
             task_list.push(action::TriggerJob(r.act, r.make_info())); 
         }
+        // очищаем  проверочные счетчики, чтобы не забивать память
+        r.dst_top.clear();
     }
 }
 template<class T>

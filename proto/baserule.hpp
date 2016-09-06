@@ -3,12 +3,34 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 
 #include <boost/program_options.hpp>
 
 #include "../action.hpp"
 #include "../parser.hpp"
 
+
+template<class Key, class Val>
+class CountersList
+{
+public:
+    CountersList();
+    CountersList& operator+=(CountersList& other);
+    // вывод списка (debug)
+    void print() const;
+    // размер списка
+    unsigned int size() const;
+    // очистка листа
+    void clear();
+    // увеличить счетчик элемента k на значение 1 или v
+    void increase(const Key& k);
+    //void increase(const Key& k, const Val& v);
+    // возвращает имя самого большого счетчика
+    std::string get_max() const;
+private:
+    std::map<Key, Val> map_;
+};
 /*
  Класс числового периода. Используется для хранения какого либо ограничения
  имеющего младшее и старшее число. Например представление посдети ip адресов:
@@ -96,6 +118,7 @@ public:
     std::time_t bps_last_not_triggered;  // время последнего срабатывания bps триггера
     unsigned int pps_trigger_period;     // период, который должен быть активен триггер pps
     unsigned int bps_trigger_period;     // период, который должен быть активен триггер bps
+    CountersList<uint32_t, unsigned int> dst_top; // лист dst_ip адресов со счетчиками, если используется подсеть
 protected:
     // текст правила разбитый на составляющие (по пробелу или знаку =)
     std::vector<std::string> tokenize_rule;

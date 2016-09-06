@@ -175,6 +175,7 @@ TcpRule& TcpRule::operator+=( TcpRule& other)
     {
         count_packets += other.count_packets;
         count_bytes += other.count_bytes;
+        dst_top += other.dst_top;
         // сбрасываем счетчик у исходного правила
         other.count_packets = 0; 
         other.count_bytes = 0;

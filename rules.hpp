@@ -103,6 +103,7 @@ public:
             {
                 r.count_packets++;
                 r.count_bytes += len;
+                r.dst_top.increase(d_addr);
                 if(!r.next_rule)
                 {
                     break;

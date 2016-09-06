@@ -1,5 +1,62 @@
 #include "baserule.hpp"
 
+// class CountersList
+template<class Key, class Val>
+CountersList<Key, Val>::CountersList() {};
+template<class Key, class Val>
+CountersList<Key, Val>& CountersList<Key, Val>::operator+=(CountersList& other)
+{
+    if (this != &other)
+    {
+        for(auto& om: other.map_)
+        {
+            map_[om.first] += om.second;
+        }
+        other.clear();
+    }
+    return *this;
+}
+template<class Key, class Val>
+void CountersList<Key, Val>::print() const
+{
+    for(auto& m: map_) {
+        std::cout << "first: " << m.first << " second: " << m.second << std::endl;
+    }
+}
+template<class Key, class Val>
+unsigned int CountersList<Key, Val>::size() const
+{
+    return map_.size();
+}
+template<class Key, class Val>
+void CountersList<Key, Val>::clear()
+{
+    map_.clear();
+}
+template<class Key, class Val>
+void CountersList<Key, Val>::increase(const Key& k)
+{
+    map_[k]++;
+}
+// template<class Key, class Val>
+// void CountersList<Key, Val>::increase(const Key& k, const Val& v)
+// {
+//     map_[k] += v;
+// }
+template<class Key, class Val>
+std::string CountersList<Key, Val>::get_max() const
+{
+    std::pair<Key, Val> max_val = {0, 0};
+    for(auto& m: map_)
+    {
+        if(m.second > max_val.second)
+        {
+            max_val = m;
+        }
+    }
+    return boost::asio::ip::address_v4(max_val.first).to_string();
+}
+
 // class NumRange
 template<class T>
 NumRange<T>::NumRange()
@@ -175,12 +232,17 @@ std::string BaseRule::BaseRule_info() const
     std::string info = std::to_string(count_packets) + "|"
                     + std::to_string(count_bytes) + "|"
                     + std::to_string(pps) + "|"
-                    + std::to_string(bps);
+                    + std::to_string(bps) + "|max: "
+                    + dst_top.get_max() + "|"
+                    + std::to_string(dst_top.size());
     return info;
 }
 
+template class CountersList<uint16_t, unsigned int>;
+template class CountersList<uint32_t, unsigned int>;
 template class NumRange<uint16_t>;
 template class NumRange<uint32_t>;
 template class NumComparable<uint8_t>;
 template class NumComparable<uint16_t>;
 template class NumComparable<uint32_t>;
+
