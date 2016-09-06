@@ -119,7 +119,7 @@ void task_runner(std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
 
 int main(int argc, char** argv) {
     // Настройки по-умолчанию
-    std::string interface = "eth4";
+    std::string interface = "eth1";
     std::string config_file = "/etc/ddosdetector.conf";
     std::string rules_file = "/etc/ddosdetector.rules";
     std::string log_file = "";
