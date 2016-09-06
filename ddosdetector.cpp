@@ -137,6 +137,7 @@ int main(int argc, char** argv) {
         ("pps-th-period", po::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
         ("bps-th-period", po::value<unsigned int>(), "trigger threshold period in seconds (default 10)")
         ("action,a", po::value<std::string>(), "run action when trigger active (type:param)")
+        ("comment,c", po::value<std::string>(), "comment for rule")
         ("next", "go to next rule in list")
     ;
     // L3 header опции

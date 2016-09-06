@@ -151,13 +151,13 @@ NumComparable<T>& NumComparable<T>::operator=(const std::pair<T, unsigned short 
 
 // struct BaseRule
 BaseRule::BaseRule()
-    : count_packets(0), count_bytes(0), next_rule(false), pps(0), bps(0),
-    pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
+    : comment(""), count_packets(0), count_bytes(0), next_rule(false), pps(0),
+    bps(0), pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
     bps_last_not_triggered(0), pps_trigger_period(10),
     bps_trigger_period(10) {}
 BaseRule::BaseRule(const std::vector<std::string>& tkn_rule)
-    : count_packets(0), count_bytes(0), next_rule(false), pps(0), bps(0),
-    pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
+    : comment(""), count_packets(0), count_bytes(0), next_rule(false), pps(0),
+    bps(0), pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
     bps_last_not_triggered(0), pps_trigger_period(10), bps_trigger_period(10),
     tokenize_rule(tkn_rule) {}
 void BaseRule::BaseRule_parse(const boost::program_options::variables_map& vm)
@@ -176,6 +176,9 @@ void BaseRule::BaseRule_parse(const boost::program_options::variables_map& vm)
     }
     if (vm.count("action")) {
         act = parser::action_from_string(vm["action"].as<std::string>());
+    }
+    if (vm.count("comment")) {
+        comment = vm["comment"].as<std::string>();
     }
     if (vm.count("next")) {
         next_rule = vm.count("next");
@@ -229,12 +232,12 @@ bool BaseRule::is_triggered()
 }
 std::string BaseRule::BaseRule_info() const
 {
-    std::string info = std::to_string(count_packets) + "|"
+    std::string info = /*std::to_string(count_packets) + "|"
                     + std::to_string(count_bytes) + "|"
                     + std::to_string(pps) + "|"
                     + std::to_string(bps) + "|max: "
-                    + dst_top.get_max() + "|"
-                    + std::to_string(dst_top.size());
+                    + */dst_top.get_max()
+                    + (comment == "" ? "" : "|" + comment);
     return info;
 }
 

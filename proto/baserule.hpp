@@ -105,19 +105,20 @@ public:
     std::string BaseRule_info() const;
 
     // базовые параметры правила
-    std::string text_rule;               // текст правила
-    action::Action act;                  // действие триггера
-    uint64_t count_packets;              // счетчик пакетов
-    uint64_t count_bytes;                // счетчик байт
-    bool next_rule;                      // перейти к следующему правилу
-    uint64_t pps;                        // счетчик пакетов в секунду
-    uint64_t bps;                        // счетчик байт в секунду
-    uint32_t pps_trigger;                // триггер срабатывания для pps (команда: --pps-trigger)
-    uint32_t bps_trigger;                // триггер срабатывания для bps (команда: --bps-trigger)
-    std::time_t pps_last_not_triggered;  // время последнего срабатывания pps триггера
-    std::time_t bps_last_not_triggered;  // время последнего срабатывания bps триггера
-    unsigned int pps_trigger_period;     // период, который должен быть активен триггер pps
-    unsigned int bps_trigger_period;     // период, который должен быть активен триггер bps
+    std::string text_rule;                        // текст правила
+    action::Action act;                           // действие триггера
+    std::string comment;                          // комментарий к правилу
+    uint64_t count_packets;                       // счетчик пакетов
+    uint64_t count_bytes;                         // счетчик байт
+    bool next_rule;                               // перейти к следующему правилу
+    uint64_t pps;                                 // счетчик пакетов в секунду
+    uint64_t bps;                                 // счетчик байт в секунду
+    uint32_t pps_trigger;                         // триггер срабатывания для pps (команда: --pps-trigger)
+    uint32_t bps_trigger;                         // триггер срабатывания для bps (команда: --bps-trigger)
+    std::time_t pps_last_not_triggered;           // время последнего срабатывания pps триггера
+    std::time_t bps_last_not_triggered;           // время последнего срабатывания bps триггера
+    unsigned int pps_trigger_period;              // период, который должен быть активен триггер pps
+    unsigned int bps_trigger_period;              // период, который должен быть активен триггер bps
     CountersList<uint32_t, unsigned int> dst_top; // лист dst_ip адресов со счетчиками, если используется подсеть
 protected:
     // текст правила разбитый на составляющие (по пробелу или знаку =)

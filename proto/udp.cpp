@@ -88,6 +88,7 @@ UdpRule& UdpRule::operator+=( UdpRule& other)
     {
         count_packets += other.count_packets;
         count_bytes += other.count_bytes;
+        dst_top += other.dst_top;
         // сбрасываем счетчик у исходного правила
         other.count_packets = 0; 
         other.count_bytes = 0;
@@ -97,10 +98,10 @@ UdpRule& UdpRule::operator+=( UdpRule& other)
 std::string UdpRule::make_info() const
 {
     std::string info = "udp|"
-                + BaseRule_info() + "|"
+                + BaseRule_info()/* + "|"
                 + (ip_src.stat() ? ip_src.to_cidr() : "") + "|"
                 + (ip_dst.stat() ? ip_dst.to_cidr() : "") + "|"
                 + (src_port.stat() ? src_port.to_range() : "") + "|"
-                + (dst_port.stat() ? dst_port.to_range() : "") + "|";
+                + (dst_port.stat() ? dst_port.to_range() : "") + "|"*/;
     return info;
 }

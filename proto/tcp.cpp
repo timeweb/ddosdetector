@@ -185,10 +185,10 @@ TcpRule& TcpRule::operator+=( TcpRule& other)
 std::string TcpRule::make_info()
 {
     std::string info = "tcp|"
-                + BaseRule_info() + "|"
+                + BaseRule_info()/* + "|"
                 + (ip_src.stat() ? ip_src.to_cidr() : "") + "|"
                 + (ip_dst.stat() ? ip_dst.to_cidr() : "") + "|"
                 + (src_port.stat() ? src_port.to_range() : "") + "|"
-                + (dst_port.stat() ? dst_port.to_range() : "") + "|";
+                + (dst_port.stat() ? dst_port.to_range() : "") + "|"*/;
     return info;
 }

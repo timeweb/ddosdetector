@@ -75,6 +75,7 @@ IcmpRule& IcmpRule::operator+=( IcmpRule& other)
     {
         count_packets += other.count_packets;
         count_bytes += other.count_bytes;
+        dst_top += other.dst_top;
         // сбрасываем счетчик у исходного правила
         other.count_packets = 0; 
         other.count_bytes = 0;
@@ -84,10 +85,10 @@ IcmpRule& IcmpRule::operator+=( IcmpRule& other)
 std::string IcmpRule::make_info() const
 {
     std::string info = "icmp|"
-                + BaseRule_info() + "|"
+                + BaseRule_info()/* + "|"
                 + (ip_src.stat() ? ip_src.to_cidr() : "") + "|"
                 + (ip_dst.stat() ? ip_dst.to_cidr() : "") + "|"
                 + type.to_str() + "|"
-                + code.to_str() + "|";
+                + code.to_str() + "|"*/;
     return info;
 }
