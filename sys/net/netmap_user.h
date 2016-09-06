@@ -167,7 +167,11 @@ nm_ring_space(struct netmap_ring *ring)
 #include <signal.h>
 #include <stdlib.h>
 
-#ifndef ND /* debug macros */
+#ifdef NETMAP_NO_DEBUG /* debug macros */
+#define ND(_fmt, ...) do {} while(0)
+#define D(_fmt, ...) do {} while(0)
+#define RD(lps, format, ...) do {} while(0)
+#else
 /* debug support */
 #define ND(_fmt, ...) do {} while(0)
 #define D(_fmt, ...)						\

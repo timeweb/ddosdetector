@@ -20,6 +20,7 @@
 
 #define NETMAP_WITH_LIBS
 #define NETMAP_NO_DEBUG // Disable debug messages from Netmap
+//#define DEBUG_NETMAP_USER // Detail debugging
 #include <net/netmap_user.h>
 #include <boost/thread.hpp>
 #include <boost/algorithm/string/replace.hpp>
