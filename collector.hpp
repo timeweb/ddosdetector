@@ -20,7 +20,6 @@
 
 #define NETMAP_WITH_LIBS
 #define NETMAP_NO_DEBUG // Disable debug messages from Netmap
-//#define DEBUG_NETMAP_USER // Detail debugging
 #include <net/netmap_user.h>
 #include <boost/thread.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -40,21 +39,12 @@ class NetmapPoller
 {
 public:
     explicit NetmapPoller(const struct nm_desc* nmd);
-    ~NetmapPoller();
     bool try_poll();
-    u_char* get_buff_from_ring();
-    void set_forward();
-    void next();
-
-    unsigned int buff_len;
 private:
     // поллер для определения поступления данных
     struct pollfd fds_;
-        // id еукущего слота в кольцевой очереди
-    unsigned int cur_slot_id_;
     // кольцевая очередь с которой работает этот экземпляр поллера
     struct netmap_ring* rxring_;
-
 };
 
 /*
@@ -76,7 +66,6 @@ public:
                    boost::thread_group& threads,
                    std::vector<std::shared_ptr<RulesCollection>>& rules,
                    const RulesCollection& collection);
-    ~NetmapReceiver();
     // создание потоков-обработчиков, заполненеи vector rules
     void start();
 private:
@@ -106,8 +95,6 @@ private:
     std::vector<std::shared_ptr<RulesCollection>>& threads_rules_;
     // эталонная коллекция, с которой копируются все остальные
     RulesCollection main_collect_;
-    // указатель на основной netmap descriptor
-    struct nm_desc* main_nmd_;
 };
 
 #endif // end COLLECTOR_HPP

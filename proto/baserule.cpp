@@ -203,10 +203,7 @@ bool BaseRule::is_triggered()
             if((cur_time - pps_last_not_triggered) > pps_trigger_period) 
             {
                 pps_last_not_triggered = cur_time; // чтобы триггер срабатывал один раз в период
-                if(dst_top.size() > 0) // если адрес назначения известен
-                {
-                    return true;
-                }
+                return true;
             }
         }
         else
@@ -223,10 +220,7 @@ bool BaseRule::is_triggered()
             if((cur_time - bps_last_not_triggered) > bps_trigger_period) 
             {
                 bps_last_not_triggered = cur_time; // чтобы триггер срабатывал один раз в период
-                if(dst_top.size() > 0) // если адрес назначения известен
-                {
-                    return true;
-                }
+                return true;
             }
         }
         else

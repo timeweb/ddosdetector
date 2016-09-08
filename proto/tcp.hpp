@@ -58,7 +58,7 @@ public:
                       const uint32_t s_addr,
                       const uint32_t d_addr) const;
     // вывод информации по правилу: текстовое представление, счетчики, дельта
-    std::string make_info() const;
+    std::string make_info();
 
     // Source port 
     NumRange<uint16_t> src_port;

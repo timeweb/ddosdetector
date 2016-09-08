@@ -74,7 +74,7 @@ namespace action
     {
     public:
         TriggerJob();
-        TriggerJob(const Action& a, const std::string& d);
+        TriggerJob(const Action& a, const std::string d);
         // запуск задания триггера
         void run();
     private:

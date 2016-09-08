@@ -35,7 +35,6 @@ void watcher(std::vector<std::shared_ptr<RulesCollection>>& collect,
     std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
 {
     RulesCollection prev_collect(*main_collect);
-    std::chrono::high_resolution_clock::time_point last_change;
     for(;;)
     {
         int i = 0;
@@ -56,18 +55,9 @@ void watcher(std::vector<std::shared_ptr<RulesCollection>>& collect,
         main_collect->calc_delta(prev_collect);
         // сохраняем новые счетчики и правила для следующего шага цикла
         prev_collect = *main_collect;
-        // сразу после обновления правил нет смысла проверять
-        // триггеры, данные будут не актуальны
-        if(last_change == main_collect->last_change)
-        {
-            // проверяем триггеры
-            main_collect->check_triggers(*task_list);
-        }
-        else
-        {
-            last_change = main_collect->last_change;
-        }
-        // на секунду засыпаем
+        // проверяем триггеры
+        main_collect->check_triggers(*task_list); 
+        // на секунду запаем
         boost::this_thread::sleep_for(boost::chrono::seconds(1));
     }
 }
@@ -119,7 +109,7 @@ void task_runner(std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
 
 int main(int argc, char** argv) {
     // Настройки по-умолчанию
-    std::string interface = "eth1";
+    std::string interface = "eth4";
     std::string config_file = "/etc/ddosdetector.conf";
     std::string rules_file = "/etc/ddosdetector.rules";
     std::string log_file = "";
