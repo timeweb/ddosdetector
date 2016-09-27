@@ -107,8 +107,18 @@ std::string get_netmap_intf(const std::string& intf)
 
 bool is_file_exist(const std::string& file_name)
 {
-    struct stat buffer;
-    return (stat (file_name.c_str(), &buffer) == 0);
+    struct stat st;
+    return (stat (file_name.c_str(), &st) == 0);
+}
+
+bool is_executable(const std::string& file_name)
+{
+    struct stat st;
+    if(stat(file_name.c_str(), &st) < 0)
+        return false;
+    if ((st.st_mode & S_IEXEC) != 0)
+        return true;
+    return false;
 }
 
 std::string format_len(const std::string& s, unsigned int len)

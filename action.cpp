@@ -23,13 +23,23 @@ namespace action
     void job_script(const std::string& to, const std::string& data)
     {
         logger << log4cpp::Priority::DEBUG << "JOB_SCRIPT: " << to << " " << data;
-        std::string cmd = to + " \"" + data + "\" 2>1 /dev/null &";
-        if(system(cmd.c_str()) == -1)
+        std::string cmd = to + " \"" + data + "\" > /dev/null 2>&1 &";
+        if(is_executable(to))
+        {
+            if(system(cmd.c_str()) == -1)
+            {
+                logger << log4cpp::Priority::ERROR
+                    << "run command: "
+                    << to << " "
+                    << data << " failed";
+            }
+        }
+        else
         {
             logger << log4cpp::Priority::ERROR
-                << "run command: "
-                << to << " "
-                << data << " failed";
+                << "Script " << to
+                << " don't exist or don't executable."
+                << "Please check executable flag.";
         }
     }
     // FUTURE: create dump traffic and store to .pcap file

@@ -51,6 +51,10 @@ std::string get_netmap_intf(const std::string& intf);
 */
 bool is_file_exist(const std::string& file_name);
 /*
+ проверяет исполняемый ли файл
+*/
+bool is_executable(const std::string& file_name);
+/*
  форматирует строку по определенной длинне для выравнивания вывода
  @param s: строка
  @param len: минимальная длинна выходной строки
