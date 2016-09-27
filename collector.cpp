@@ -125,7 +125,15 @@ void NetmapReceiver::netmap_thread(struct nm_desc* nm_descr, int thread_number,
                     // в host stack для ОС
                     if(check_packet(buf, collect, poller.buff_len))
                     {
-                        poller.set_forward();
+                        // в host stack перебрасываем только пакеты из ring 0
+                        // (thread id 0), так как функционал netmap: NS_FORWARD
+                        // не потокобезопасен, и в противном случае течет память
+                        // для мониторинга и дампов достаточно проброса пакетов
+                        // только из одной очереди
+                        if(thread_number == 0)
+                        {
+                            poller.set_forward();
+                        }
                     }
                     poller.next();
                 }
