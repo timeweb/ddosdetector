@@ -1,12 +1,14 @@
 #include "icmp.hpp"
 
 // class IcmpRule
+
 IcmpRule::IcmpRule()
     : Ipv4Rule(6), BaseRule() {}
 IcmpRule::IcmpRule(const std::vector<std::string>& tkn_rule)
     : Ipv4Rule(6), BaseRule(tkn_rule) {}
 void IcmpRule::parse(const boost::program_options::options_description& opt)
 {
+    rule_type = "icmp";
     parser::CommandParser cp(opt);
     boost::program_options::variables_map vm = cp.parse(tokenize_rule);
     // store text rule
@@ -81,14 +83,4 @@ IcmpRule& IcmpRule::operator+=( IcmpRule& other)
         other.count_bytes = 0;
     }
     return *this;
-}
-std::string IcmpRule::make_info() const
-{
-    std::string info = "icmp|"
-                + BaseRule_info()/* + "|"
-                + (ip_src.stat() ? ip_src.to_cidr() : "") + "|"
-                + (ip_dst.stat() ? ip_dst.to_cidr() : "") + "|"
-                + type.to_str() + "|"
-                + code.to_str() + "|"*/;
-    return info;
 }

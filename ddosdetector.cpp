@@ -16,6 +16,7 @@
 #include "functions.hpp"
 #include "parser.hpp"
 #include "action.hpp"
+#include "influxdb.hpp"
 #include "rules.hpp"
 #include "collector.hpp"
 #include "controld.hpp"
@@ -32,7 +33,8 @@ log4cpp::Category& logger = log4cpp::Category::getRoot();
 */
 void watcher(std::vector<std::shared_ptr<RulesCollection>>& collect,
     std::shared_ptr<RulesCollection> main_collect,
-    std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
+    std::shared_ptr<ts_queue<action::TriggerJob>> task_list,
+    std::shared_ptr<InfluxClient> influx)
 {
     RulesCollection prev_collect(*main_collect);
     std::chrono::high_resolution_clock::time_point last_change;
@@ -61,7 +63,7 @@ void watcher(std::vector<std::shared_ptr<RulesCollection>>& collect,
         if(last_change == main_collect->last_change)
         {
             // проверяем триггеры
-            main_collect->check_triggers(*task_list);
+            main_collect->check_triggers(*task_list, *influx);
         }
         else
         {
@@ -69,6 +71,24 @@ void watcher(std::vector<std::shared_ptr<RulesCollection>>& collect,
         }
         // на секунду засыпаем
         boost::this_thread::sleep_for(boost::chrono::seconds(1));
+    }
+}
+
+void monitor(std::shared_ptr<RulesCollection> collect,
+    std::shared_ptr<InfluxClient> influx, unsigned int period)
+{
+    int code = 0;
+    for(;;)
+    {
+        std::string q = collect->get_influx_querys();
+        code = influx->insert(q);
+        if(code != 0)
+        {
+            logger.error("Bad request, curl lib return code: %d", code);
+        }
+
+        // засыпаем
+        boost::this_thread::sleep_for(boost::chrono::seconds(period));
     }
 }
 
@@ -272,6 +292,14 @@ int main(int argc, char** argv) {
         // TODO: чтение настроек с конфига
     }
 
+    // InfluxDB client для статистики
+    auto influx_client = std::make_shared<InfluxClient>(influx_host,
+                                                        influx_port,
+                                                        influx_db,
+                                                        influx_user,
+                                                        influx_pass,
+                                                        influx_enable);
+
     // Загрузка правил из файла
     /*
         RulesFileLoader загружает текущий конфиг из файла при инициализации, а
@@ -310,8 +338,9 @@ int main(int argc, char** argv) {
 
     // старт потока наблюдателя
     threads.add_thread(new boost::thread(watcher, std::ref(threads_coll),
-                                         main_collect, task_list));
-    logger.info("Start watcher thread");
+                                         main_collect, task_list,
+                                         influx_client));
+    logger.debug("Start watcher thread");
 
     // старт TCP сервера управления
     threads.add_thread(new boost::thread(start_control,
@@ -319,7 +348,15 @@ int main(int argc, char** argv) {
 
     // старт обработчика заданий триггеров
     threads.add_thread(new boost::thread(task_runner, task_list));
-    logger.info("Starting runner thread");
+    logger.debug("Starting runner thread");
+
+    // старт потока мониторинга
+    if(influx_client->is_enable())
+    {
+        threads.add_thread(new boost::thread(monitor, main_collect,
+                                             influx_client, influx_period));
+        logger.debug("Start monitor thread");
+    }
 
     // Ждем сигналы и подключения к TCP/UNIX серверу
     try

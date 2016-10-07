@@ -102,9 +102,13 @@ public:
     // обновление времени в переменных: pps_last_not_triggered и
     // bps_last_not_triggered.
     bool is_triggered();
-    std::string BaseRule_info() const;
+    // формирование текста для задания триггера
+    std::string get_job_info() const;
+    // формирование запроса в базу InfluxDB для сработавшего триггера
+    std::string get_trigger_influx() const;
 
     // базовые параметры правила
+    std::string rule_type;                             // текстовое представление типа правила (tcp, udp и т.д.)
     std::string text_rule;                        // текст правила
     action::Action act;                           // действие триггера
     std::string comment;                          // комментарий к правилу

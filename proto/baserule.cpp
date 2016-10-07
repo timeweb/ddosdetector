@@ -151,15 +151,15 @@ NumComparable<T>& NumComparable<T>::operator=(const std::pair<T, unsigned short 
 
 // struct BaseRule
 BaseRule::BaseRule()
-    : comment(""), count_packets(0), count_bytes(0), next_rule(false), pps(0),
-    bps(0), pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
-    bps_last_not_triggered(0), pps_trigger_period(10),
-    bps_trigger_period(10) {}
+    : rule_type("none"), comment(""), count_packets(0), count_bytes(0),
+    next_rule(false), pps(0), bps(0), pps_trigger(0), bps_trigger(0),
+    pps_last_not_triggered(0), bps_last_not_triggered(0),
+    pps_trigger_period(10), bps_trigger_period(10) {}
 BaseRule::BaseRule(const std::vector<std::string>& tkn_rule)
-    : comment(""), count_packets(0), count_bytes(0), next_rule(false), pps(0),
-    bps(0), pps_trigger(0), bps_trigger(0), pps_last_not_triggered(0),
-    bps_last_not_triggered(0), pps_trigger_period(10), bps_trigger_period(10),
-    tokenize_rule(tkn_rule) {}
+    : rule_type("none"), comment(""), count_packets(0), count_bytes(0),
+    next_rule(false), pps(0), bps(0), pps_trigger(0), bps_trigger(0),
+    pps_last_not_triggered(0), bps_last_not_triggered(0),
+    pps_trigger_period(10), bps_trigger_period(10), tokenize_rule(tkn_rule) {}
 void BaseRule::BaseRule_parse(const boost::program_options::variables_map& vm)
 {
     if (vm.count("pps-th")) {
@@ -236,14 +236,35 @@ bool BaseRule::is_triggered()
     }
     return false;
 }
-std::string BaseRule::BaseRule_info() const
+std::string BaseRule::get_job_info() const
 {
-    std::string info = /*std::to_string(count_packets) + "|"
-                    + std::to_string(count_bytes) + "|"
-                    + std::to_string(pps) + "|"
-                    + std::to_string(bps) + "|max: "
-                    + */dst_top.get_max()
-                    + (comment == "" ? "" : "|" + comment);
+    
+    // std::string info = std::to_string(count_packets) + "|"
+    //                 + std::to_string(count_bytes) + "|"
+    //                 + std::to_string(pps) + "|"
+    //                 + std::to_string(bps) + "|max: "
+    //                 + dst_top.get_max()
+    //                 + (comment == "" ? "" : "|" + comment);
+    // return info;
+    
+
+    std::string info = rule_type + "|"
+        + dst_top.get_max()
+        + (comment == "" ? "" : "|" + comment)/* + "|"
+        + (ip_src.stat() ? ip_src.to_cidr() : "") + "|"
+        + (ip_dst.stat() ? ip_dst.to_cidr() : "") + "|"
+        + (src_port.stat() ? src_port.to_range() : "") + "|"
+        + (dst_port.stat() ? dst_port.to_range() : "") + "|"*/;
+    return info;
+}
+std::string BaseRule::get_trigger_influx() const
+{
+    std::string info = "events,dst=" + dst_top.get_max()
+        + " bps=" + std::to_string(bps * 8)
+        + ",pps=" + std::to_string(pps)
+        + ",type=\"" + rule_type
+        + "\",comment=\"" + (comment)
+        + "\"";
     return info;
 }
 

@@ -31,8 +31,6 @@ public:
     bool check_packet(const struct icmphdr *icmp_hdr,
                       const uint32_t s_addr,
                       const uint32_t d_addr) const;
-    // вывод информации по правилу: текстовое представление, счетчики, дельта
-    std::string make_info() const;
 
     // ICMP packet type
     NumComparable<uint8_t> type;

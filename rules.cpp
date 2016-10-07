@@ -77,7 +77,8 @@ void RulesList<T>::calc_delta(const RulesList& rules_old)
     }
 }
 template<class T>
-void RulesList<T>::check_triggers(ts_queue<action::TriggerJob>& task_list)
+void RulesList<T>::check_triggers(ts_queue<action::TriggerJob>& task_list,
+    InfluxClient& influx)
 {
     boost::lock_guard<boost::shared_mutex> guard(m_);
     for(auto& r: rules_)
@@ -85,7 +86,9 @@ void RulesList<T>::check_triggers(ts_queue<action::TriggerJob>& task_list)
         if(r.is_triggered()) // если триггер сработал
         {
             // добавляем задание триггера в очередь обработчика заданий
-            task_list.push(action::TriggerJob(r.act, r.make_info())); 
+            task_list.push(action::TriggerJob(r.act, r.get_job_info()));
+            // отправляем event в базу
+            influx.insert(r.get_trigger_influx());
         }
         // очищаем  проверочные счетчики, чтобы не забивать память
         r.dst_top.clear();
@@ -137,6 +140,10 @@ template<class T>
 std::string RulesList<T>::get_rules()
 {
     std::string res = "";
+    uint64_t all_count_packets = 0;
+    uint64_t all_count_bytes = 0;
+    uint64_t all_pps = 0;
+    uint64_t all_bps = 0;
     unsigned int max_text_size = 0;
     boost::format num_f("%5s"); // форматируем по ширине вывод номеров правил
     boost::shared_lock<boost::shared_mutex> guard(m_);
@@ -158,7 +165,49 @@ std::string RulesList<T>::get_rules()
             + parser::to_short_size(rules_[i].bps, true) + "), "
             + to_string(rules_[i].count_packets) + " packets, "
             + to_string(rules_[i].count_bytes) +  " bytes\n";
+        all_count_packets += rules_[i].count_packets;
+        all_count_bytes += rules_[i].count_bytes;
+        all_pps += rules_[i].pps;
+        all_bps += rules_[i].bps;
     }
+    res += "Total: "
+        + parser::to_short_size(all_pps, false) + " ("
+        + parser::to_short_size(all_bps, true) + "), "
+        + to_string(all_count_packets) + " packets, "
+        + to_string(all_count_bytes) +  " bytes\n\n";
+    return res;
+}
+template<class T>
+std::string RulesList<T>::get_influx_querys()
+{
+    std::string res = "";
+    std::string t = "none";
+    uint64_t all_count_packets = 0;
+    uint64_t all_count_bytes = 0;
+    uint64_t all_pps = 0;
+    uint64_t all_bps = 0;
+    boost::shared_lock<boost::shared_mutex> guard(m_);
+    for (unsigned int i=0; i<rules_.size(); i++)
+    {
+        res += rules_[i].rule_type
+            + ",rule=" + std::to_string(i)
+            + " pps=" + to_string(rules_[i].pps)
+            + ",bps=" + to_string(rules_[i].bps * 8)
+            // + ",pk=" + to_string(rules_[i].count_packets)
+            // + ",bt=" + to_string(rules_[i].count_bytes)
+            + " {timestamp}\n";
+        all_count_packets += rules_[i].count_packets;
+        all_count_bytes += rules_[i].count_bytes;
+        all_pps += rules_[i].pps;
+        all_bps += rules_[i].bps;
+        t = rules_[i].rule_type;
+    }
+    res += "total,type=" + t
+        + " pps=" + to_string(all_pps)
+        + ",bps=" + to_string(all_bps * 8)
+        // + ",pk=" + to_string(all_count_packets)
+        // + ",bt=" + to_string(all_count_bytes)
+        + " {timestamp}\n";
     return res;
 }
 template<class T>
@@ -235,6 +284,16 @@ std::string RulesCollection::get_rules()
     cnt += icmp.get_rules();
     return cnt;
 }
+std::string RulesCollection::get_influx_querys()
+{
+    std::string querys;
+    querys += tcp.get_influx_querys();
+    querys += udp.get_influx_querys();
+    querys += icmp.get_influx_querys();
+    std::string cur_time = std::to_string(std::time(0)) + "000000000";
+    boost::replace_all(querys, "{timestamp}", cur_time);
+    return querys;
+}
 bool RulesCollection::is_type(const std::string& type) const
 {
     if (std::find(types_.begin(), types_.end(), type) != types_.end())
@@ -252,11 +311,12 @@ void RulesCollection::calc_delta(const RulesCollection& old)
         icmp.calc_delta(old.icmp);
     }
 }
-void RulesCollection::check_triggers(ts_queue<action::TriggerJob>& task_list)
+void RulesCollection::check_triggers(ts_queue<action::TriggerJob>& task_list,
+    InfluxClient& influx)
 {
-    tcp.check_triggers(task_list);
-    udp.check_triggers(task_list);
-    icmp.check_triggers(task_list);
+    tcp.check_triggers(task_list, influx);
+    udp.check_triggers(task_list, influx);
+    icmp.check_triggers(task_list, influx);
 }
 
 

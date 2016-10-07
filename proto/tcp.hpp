@@ -57,8 +57,6 @@ public:
     bool check_packet(const struct tcphdr *tcp_hdr,
                       const uint32_t s_addr,
                       const uint32_t d_addr) const;
-    // вывод информации по правилу: текстовое представление, счетчики, дельта
-    std::string make_info() const;
 
     // Source port 
     NumRange<uint16_t> src_port;

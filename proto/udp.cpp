@@ -1,12 +1,14 @@
 #include "udp.hpp"
 
 // class UdpRule
+
 UdpRule::UdpRule()
     : Ipv4Rule(6), BaseRule() {}
 UdpRule::UdpRule(const std::vector<std::string>& tkn_rule)
     : Ipv4Rule(6), BaseRule(tkn_rule) {}
 void UdpRule::parse(const boost::program_options::options_description& opt)
 {
+    rule_type = "udp";
     parser::CommandParser cp(opt);
     boost::program_options::variables_map vm = cp.parse(tokenize_rule);
     // store text rule
@@ -94,14 +96,4 @@ UdpRule& UdpRule::operator+=( UdpRule& other)
         other.count_bytes = 0;
     }
     return *this;
-}
-std::string UdpRule::make_info() const
-{
-    std::string info = "udp|"
-                + BaseRule_info()/* + "|"
-                + (ip_src.stat() ? ip_src.to_cidr() : "") + "|"
-                + (ip_dst.stat() ? ip_dst.to_cidr() : "") + "|"
-                + (src_port.stat() ? src_port.to_range() : "") + "|"
-                + (dst_port.stat() ? dst_port.to_range() : "") + "|"*/;
-    return info;
 }

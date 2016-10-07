@@ -5,12 +5,14 @@
 #include <fstream>
 #include <vector>
 #include <chrono>
+#include <ctime>
 
 #include <boost/thread.hpp>
 #include <boost/program_options.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/format.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 // Logging
 #include "log4cpp/Category.hh"
@@ -21,6 +23,7 @@
 #include "lib/queue.hpp"
 #include "action.hpp"
 #include "functions.hpp"
+#include "influxdb.hpp"
 
 // protocols
 #include "proto/ip.hpp"
@@ -62,7 +65,8 @@ public:
      проверка триггеров правил, установка заданий обработчику заданий.
      @param task_list: ссылка на очередь заданий обработчика;
     */
-    void check_triggers(ts_queue<action::TriggerJob>& task_list);
+    void check_triggers(ts_queue<action::TriggerJob>& task_list,
+        InfluxClient& influx);
     /*
      добавление правила в конец листа
      @param rule: добавляемое правито типа T
@@ -117,6 +121,10 @@ public:
     */
     std::string get_rules();
     /*
+     формирование запросов для статистики в InfluxDB
+    */
+    std::string get_influx_querys();
+    /*
      возвращает параметры парсинга правил (переменная parse_opt_).
     */
     boost::program_options::options_description get_params() const;
@@ -166,6 +174,11 @@ public:
     */
     std::string get_rules();
     /*
+     формирует набор запросов в базу InfluxDB для добавления статистики
+     (вызываются функции RulesList<T>.get_influx_querys())
+    */
+    std::string get_influx_querys();
+    /*
      проверяется допустим ли тип списка правил.
      @param type: название типа
     */
@@ -179,7 +192,8 @@ public:
      проверка триггеров во всех списках правил
      @param task_list
     */
-    void check_triggers(ts_queue<action::TriggerJob>& task_list);
+    void check_triggers(ts_queue<action::TriggerJob>& task_list,
+        InfluxClient& influx);
 private:
     std::vector<std::string> types_;
     boost::program_options::options_description help_;

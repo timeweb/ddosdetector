@@ -4,7 +4,7 @@ CXX = g++-4.8
 PROGS = ddosdetector
 CLEANFILES = $(PROGS) *.o
 
-LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options
+LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lcurl
 CPPFLAGS = -std=c++11 -Wall #-O2
 CPPFLAGS += -I ./sys -I ./proto
 
@@ -15,7 +15,7 @@ TESTS_RUN = $(TESTS_CPPFILES:.cpp=.run)
 
 all: $(PROGS)
 
-ddosdetector: exceptions.o functions.o collector.o parser.o action.o controld.o baserule.o ip.o tcp.o udp.o icmp.o rules.o  ddosdetector.o
+ddosdetector: exceptions.o functions.o collector.o parser.o action.o influxdb.o controld.o baserule.o ip.o tcp.o udp.o icmp.o rules.o  ddosdetector.o
 	$(CXX) $(CPPFLAGS) $^ -o $@ $(LDFLAGS)
 
 exceptions.o: exceptions.cpp
@@ -38,6 +38,9 @@ functions.o: functions.cpp
 
 action.o: action.cpp
 	$(CXX) $(CPPFLAGS) -c action.cpp -o action.o $(LDFLAGS)
+
+influxdb.o: influxdb.cpp
+	$(CXX) $(CPPFLAGS) -c influxdb.cpp -o influxdb.o $(LDFLAGS)
 
 tcp.o: proto/tcp.cpp
 	$(CXX) $(CPPFLAGS) -c proto/tcp.cpp -o tcp.o $(LDFLAGS)

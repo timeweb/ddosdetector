@@ -20,12 +20,14 @@ bool tcp_flags::operator==(tcp_flags const & other) const
 }
 
 // class TcpRule
+
 TcpRule::TcpRule()
     : Ipv4Rule(6), BaseRule() {}
 TcpRule::TcpRule(const std::vector<std::string>& tkn_rule)
     : Ipv4Rule(6), BaseRule(tkn_rule) {}
 void TcpRule::parse(const boost::program_options::options_description& opt)
 {
+    rule_type = "tcp";
     parser::CommandParser cp(opt);
     boost::program_options::variables_map vm = cp.parse(tokenize_rule);
     // // check conflicting
@@ -181,14 +183,4 @@ TcpRule& TcpRule::operator+=( TcpRule& other)
         other.count_bytes = 0;
     }
     return *this;
-}
-std::string TcpRule::make_info() const
-{
-    std::string info = "tcp|"
-                + BaseRule_info()/* + "|"
-                + (ip_src.stat() ? ip_src.to_cidr() : "") + "|"
-                + (ip_dst.stat() ? ip_dst.to_cidr() : "") + "|"
-                + (src_port.stat() ? src_port.to_range() : "") + "|"
-                + (dst_port.stat() ? dst_port.to_range() : "") + "|"*/;
-    return info;
 }
