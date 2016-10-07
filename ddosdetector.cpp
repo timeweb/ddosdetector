@@ -1,6 +1,7 @@
 #include <iostream>
 // Signal handlers
 #include <boost/asio.hpp>
+#include <boost/program_options.hpp>
 
 // Logging
 #include "log4cpp/Category.hh"
@@ -139,24 +140,47 @@ void task_runner(std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
 
 int main(int argc, char** argv) {
     // Настройки по-умолчанию
-    std::string interface = "eth1";
+    std::string interface = "";
     std::string config_file = "/etc/ddosdetector.conf";
     std::string rules_file = "/etc/ddosdetector.rules";
     std::string log_file = "";
     std::string port = "9090";
     bool debug_mode = false;
+    // Мониторинг в InfluxDB
+    std::string influx_enable = "no";
+    std::string influx_user = "";
+    std::string influx_pass = "";
+    std::string influx_db = "ddosdetector";
+    std::string influx_host = "localhost";
+    unsigned int influx_port = 8086;
+    unsigned int influx_period = 60;
 
     // Опции запуска приложения
     namespace po = boost::program_options;
-    po::options_description general_opt("General options");
-    general_opt.add_options()
+    po::options_description argv_opt("General options");
+    argv_opt.add_options()
         ("help,h", "show this help")
         ("interface,i", po::value<std::string>(&interface), "network interface (default eth4)")
-        ("config,c", po::value<std::string>(&config_file), "load config (default /etc/ddosdetector.conf)")
+        //("config,c", po::value<std::string>(&config_file), "load config (default /etc/ddosdetector.conf)")
         ("rules,r", po::value<std::string>(&rules_file), "load rules from file (default /etc/ddosdetector.rules)")
         ("log,l", po::value<std::string>(&log_file), "log file (default output to console)")
         ("port,p", po::value<std::string>(&port), "port for controld tcp server (may be unix socket file)")
         ("debug,d", "enable debug output")
+    ;
+
+    po::options_description config_file_opt("Configuration file");
+    config_file_opt.add_options()
+        ("Main.Interface", po::value<std::string>(&interface))
+        ("Main.Rules", po::value<std::string>(&rules_file))
+        ("Main.Log", po::value<std::string>(&log_file))
+        ("Main.Port", po::value<std::string>(&port))
+        ("IndluxDB.Enable", po::value<std::string>(&influx_enable))
+        ("IndluxDB.User", po::value<std::string>(&influx_user))
+        ("IndluxDB.Password", po::value<std::string>(&influx_pass))
+        ("IndluxDB.Database", po::value<std::string>(&influx_db))
+        ("IndluxDB.Host", po::value<std::string>(&influx_host))
+        ("IndluxDB.Port", po::value<unsigned int>(&influx_port))
+        ("IndluxDB.Period", po::value<unsigned int>(&influx_period))
     ;
 
     // Настройки обработчика команд для правил слежения
@@ -216,25 +240,39 @@ int main(int argc, char** argv) {
     icmp_rule_opt.add(base_opt).add(ipv4_opt).add(icmp_opt);
 
     // Обработка аргументов
-    po::variables_map vm; 
+    po::variables_map vm;
     try 
-    { 
-        po::store(po::parse_command_line(argc, argv, general_opt), vm);
-        if ( vm.count("help")  ) 
-        { 
-            std::cout << "Basic Command Line Parameter App" << std::endl 
-                      << general_opt << std::endl
-                      << help_opt << std::endl;
-            return 0; 
-        } 
+    {
+        // Загрузка конфигурации из файла если он существует
+        std::ifstream cnf(config_file);
+        if(cnf)
+        {
+            po::store(po::parse_config_file(cnf, config_file_opt, true), vm);
+            po::notify(vm);
+        }
+        else
+        {
+            std::cerr << "Configuration file: " << config_file
+                      << " not found" << std::endl;
+        }
+        // Разбор параметров командной строки
+        po::store(po::parse_command_line(argc, argv, argv_opt), vm);
         po::notify(vm);
     } 
     catch(po::error& e) 
     { 
-        std::cerr << "ERROR: " << e.what() << std::endl << std::endl; 
-        std::cerr << general_opt << std::endl; 
+        std::cerr << "Parse options error: " << e.what() << std::endl << std::endl; 
+        std::cerr << argv_opt << std::endl;
         return 1; 
     } 
+
+    if (vm.count("help")) 
+    { 
+        std::cout << "Basic Command Line Parameter App" << std::endl 
+                  << argv_opt << std::endl
+                  << help_opt << std::endl;
+        return 0; 
+    }
 
     // Включение debug режима
     if(vm.count("debug"))
@@ -243,7 +281,7 @@ int main(int argc, char** argv) {
     // Инициализация логирования
     init_logging(logger, debug_mode, log_file);
 
-    if(!vm.count("interface"))
+    if(interface == "")
     {
         logger << log4cpp::Priority::CRIT << "Interface '-i' not set";
         exit(1);
@@ -284,13 +322,6 @@ int main(int argc, char** argv) {
 
     // Очередь заданий для сработавших триггеров
     auto  task_list = std::make_shared<ts_queue<action::TriggerJob>>();
-
-    // Загрузка конфигурации из файла если он существует
-    if(is_file_exist(config_file))
-    {
-        logger.info("Load configuration file " + config_file);
-        // TODO: чтение настроек с конфига
-    }
 
     // InfluxDB client для статистики
     auto influx_client = std::make_shared<InfluxClient>(influx_host,
