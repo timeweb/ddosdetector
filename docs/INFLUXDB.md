@@ -1,6 +1,61 @@
-### Grafana dashboard
+## InfxluDB
+### Установка
+InfluxDB ставится из репозитория:
+```bash
+curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
+source /etc/lsb-release
+echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+sudo apt-get update && sudo apt-get install influxdb
+sudo service influxdb start
 ```
-#!json
+
+### Настройка
+Создаем пользователя администратора
+```bash
+# influx
+Visit https://enterprise.influxdata.com to register for updates, InfluxDB server management, and monitoring.
+Connected to http://localhost:8086 version 1.0.0
+InfluxDB shell version: 1.0.0
+> CREATE USER root WITH PASSWORD 'p@s$w0rd' WITH ALL PRIVILEGES
+```
+создаем базу
+```bash
+CREATE DATABASE ddosdetector
+```
+создаем пользователя для работы с базой
+```bash
+CREATE USER "ddosdetector" WITH PASSWORD 'other_p@s$w0rd'
+GRANT ALL ON "ddosdetector" TO "ddosdetector"
+```
+включаем авторизацию в конфигурационном файле Influx (/etc/influxdb/influxdb.conf):
+```bash
+auth-enabled = false
+```
+перезапускаем службу
+```
+/etc/init.d/influxdb restart
+```
+настраиваем доступ в конфигурационном файле ddosdetector (/etc/ddosdetector.conf)
+```bash
+[IndluxDB]
+Enable = yes
+User = ddosdetector
+Password = other_p@s$w0rd
+Database = ddosdetector
+Host = localhost
+Port = 8086
+Period = 30
+```
+
+## Grafana dashboard
+### Установка
+```
+wget https://grafanarel.s3.amazonaws.com/builds/grafana_3.1.1-1470047149_amd64.deb
+sudo apt-get install -y adduser libfontconfig
+sudo dpkg -i grafana_3.1.1-1470047149_amd64.deb
+```
+### Настройка
+```json
 {
   "id": 2,
   "title": "DDoS detector",
