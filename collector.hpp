@@ -33,8 +33,8 @@
 extern log4cpp::Category& logger;
 
 /*
- Класс-обработчик данных в одной очереди/потоке.
- Содержит объекты с которыми работает один поток. 
+ Handler class data in a single queue / thread.
+ Contains objects it works with a single thread.
 */
 class NetmapPoller
 {
@@ -48,26 +48,21 @@ public:
 
     unsigned int buff_len;
 private:
-    // поллер для определения поступления данных
     struct pollfd fds_;
-        // id еукущего слота в кольцевой очереди
     unsigned int cur_slot_id_;
-    // кольцевая очередь с которой работает этот экземпляр поллера
     struct netmap_ring* rxring_;
 
 };
 
 /*
- Класс запускающий процесс получения и обработки пакетов.
- @param interface: сетевой интерфейс на котором запускается процесс
- @param threads: ссылка на список потоков, в него добавляются потоки-обработчики
-                 пакетов
- @param rules: вектор коллекций правил, в него добавляются коллекции созданные
-               для каждого отдельного потока. В дальнейшем этот вектор будет
-               обрабытываться потоком watcher.
- @param collection: эталонная коллекция, с которой копируются потоковые
-                    колекции, чтобы потоковые коллекции создались с необходимыми
-                    параметрами.
+Class starts the process of receiving and processing packets.
+@param interface: the network interface on which you start the process
+@param threads: a reference to a list of threads
+@param rules: vector collection of rules, it added to the collection by
+              for each thread. This vector is synchronized in watcher thread.
+@param collection: reference collection, which are copied to the streaming
+                   Collections to stream collection is created with the necessary
+                   parameters.
 */
 class NetmapReceiver
 {
@@ -76,34 +71,34 @@ public:
                    boost::thread_group& threads,
                    std::vector<std::shared_ptr<RulesCollection>>& rules,
                    const RulesCollection& collection);
-    // создание потоков-обработчиков, заполненеи vector rules
+    // creating handler threads, filling vector rules
     void start();
 private:
     /*
-     фукнция обработки пакета
-     @param packet: данные пакета начиная с Ethernet заголовка
-     @param collect: коллекция, по правилам которой пакет будет проверяться
-     @param len: длинна пакета (в байтах)
+     packet processing function
+     @param packet: packet data since the Ethernet header
+     @param collect: collection, according to the rules which the package will be checked
+     @param len: the length of the packet (in bytes)
     */
     static bool check_packet(const u_char *packet,
                              std::shared_ptr<RulesCollection>& collect,
                              const unsigned int len);
-    // функция-обработчик запускаемая в потоке
+    // handler function is triggered in the stream
     void netmap_thread(struct nm_desc* netmap_descriptor,
                        int thread_number,
                        std::shared_ptr<RulesCollection> collect);
 
-    // сетевой интерфейс на котором запускается процесс обработки пакетов
+    // network interface that runs packet processing
     std::string intf_;
-    // netmap-имя интерфейса для запуска функций драйвера
+    // netmap-interface name to start driver functions
     std::string netmap_intf_;
-    // количество доступных ядер процессора
+    // the number of available processor cores
     int num_cpus_;
-    // ссылка на список потоков программы
+    // link to a list of program streams
     boost::thread_group& threads_;
-    // вектор коллекций правил
+    // vector collection rules
     std::vector<std::shared_ptr<RulesCollection>>& threads_rules_;
-    // эталонная коллекция, с которой копируются все остальные
+    // reference collection from which all other copies
     RulesCollection main_collect_;
 };
 

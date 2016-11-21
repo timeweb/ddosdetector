@@ -1,111 +1,114 @@
-# DDoS attack detector #
-Ddosdetector System - a flexible tool for analyzing network traffic and automation of the process of protection against DDoS attacks. The system is based on the framework, [Luigi Rizzo](https://github.com/luigirizzo/netmap) [netmap](https://habrahabr.ru/post/183832/) and is designed to work with a large volume of traffic (10GB / sec and more) without loss of performance.
+# Детектор DDoS атак #
+Система **ddosdetector** - это гибкий инструмент для анализа сетевого трафика и автоматизации процесса защиты от DDoS атак. Система основана на фреимворке [Luigi Rizzo](https://github.com/luigirizzo/netmap) [netmap](https://habrahabr.ru/post/183832/) и спроектирована для работы с большим объемом трафика (10Гб/сек и больше) без потерь производительности.
 
-The system is written in C++ (Standard 11) using *STL* and *Boost (1.55)*. Writing and assembling was done on *Ubuntu 12.04.5 LTS* and compiler *g++4.8*. For static analysis and research style blunders used *cppcheck* version 1.73.
+Система написана на языке C++ (стандарт 11) с использованием OpenSource библиотек *STL* и *Boost (1.55)*. Написание и сборка производилось на *Ubuntu 12.04.5 LTS* и компиляторе *g++-4.8*. Для статического анализа кода, проверки стиля и поиска грубых ошибок использовался *cppcheck* версии 1.73.
 
-InfluxDB can be used for monitoring and collection of statistics.
-![Grafana](docs/images/grafana.png)
-*code of this Grafana dashboard in ./docs/INFLUXDB.md file*
+Для мониторинга и сбора статистики используется InfluxDB.
+![Grafana](images/grafana.png)
+*код этого дашборда Grafana в файле ./docs/INFLUXDB.md*
 
-README in Russian: *./docs/README_RUS.md*
+## Принцип работы ##
+Демон запускается на SPAN интерфейсе (на этот интерфейс зеркалируется весь трафик защищаемой сети) сервера и начинает "прослушивать" весь трафик. Получаемый трафик пропускается через набор правил. В каждом правиле набор признаков по которым проверяется пакет и триггер, который сработает если условия совпали. Триггер связан с заданием которое выполняет одно действие (логирование, вызов скрипта и т.д.). Все правила добавляемые в систему делятся на несколько глобальных групп соответствующих L4 протоколам (TCP, UDP, ICMP и т.д.). Каждое добавляемое правило добавляется в одну группу и в соответсвии с протоколом группы и может иметь различные параметры обработки трафика (подробную информацию по доступным командам можно получить в консоли управления, набрав "help"). У каждого правила, в любой группе, имеется ряд обязательных праметров, без которых добавить правило не удастся:
+* параметр src/dst ip
+* параметр порога триггера (указывающий критическое значения по достижению которого вызывается действие триггера)
 
-## Principle of operation ##
-The daemon runs on the SPAN interface (this interface is mirrored all traffic protected network) and starts to "listen" all traffic. The resulting traffic is passed through a set of rules. Each rule set of features by which the package is tested and a trigger that will work if the conditions are matched. A trigger is associated with a task that performs one action (logging, call scripts, etc.). All rules are added to the system are divided into several groups corresponding global L4 protocols (TCP, UDP, ICMP, etc.). Each rule is added to the same group and, in accordance with the protocol of the group may have different traffic processing parameters (for more information on available commands can be obtained from the Management Console, typing "help"). Each rule, in any group, there are a number of mandatory parameters, which add a rule without fail:
-* source / destination ip address / network
-* the trigger threshold (indicating critical importance for the achievement of which is caused by the action of the trigger)
-
-An example of rules for search traffic:
+Пример правила для поиска трафика:
 ```c++
 ddoscontrold> show rules
 TCP rules (num, rule, counter):
   -d 92.53.96.141/32 --pps-th 100p --hlen <20 --pps-th-period 60 --action log:/tmp/test.log --next    : 814.00p/s (735.03Kb/s), 157106 packets, 22975832 bytes
 ```
-More functionality is described in the "Control" section.
+Подробнее функционал описан в разделе "Упрaвление".
 
-Daemon is controlled through сonsole (access on TCP port or UNIX socket) standard utilities Linux (telnet/netcat/socat). The management console provides the user with the command line parameter selection, detection, counting the traffic, as well as the parameters of reaction to one or the other traffic.
+Управление демоном осуществляется через консоль (доступ по TCP порту или UNIX сокету) стандартными утилитами Linux (telnet/netcat/socat). В консоли управления пользователю предоставляется командная строка с параметрами выделения, обнаружения, подсчета трафика, а также параметрами реакции на тот или иной трафик.
 
-System statistics can be sent to the InfluxDB data base for reporting and charting.
+Статистика может быть отправлена в базу данных InfluxDB для анализа и составления графиков.
 
-## Installation ##
-Since the system works on the basis netmap driver is required to install this driver.
-### Installing netmap driver on Ubuntu ###
-To work correctly, the driver must collect netmap netmap module and collect network card driver with netmap support. This requires download the kernel source installed on your system (in example core version 3.10.90) and collect netmap with an indication of the source (build netmap patched network card driver from source and build them).
+## Установка ##
+Так как система работает на основе драйвера netmap, требуется установка этого драйвера.
+### Установка netmap на Ubuntu ###
+Для корректной работы драйвера netmap необходимо собрать модуль netmap и собрать драйвера сетевой карты с поддержкой netmap. Для этого требуется скачать исходники ядра установленного в системе (в инструкции ниже ядро 3.10.90) и собрать netmap с указанием этих исходников (сборка netmap пропатчет драйвера сетевой карты из исходников и собирет их).
 
-Download the kernel sources and unpack:
+Скачиваем исходники ядра и распаковываем:
 ```bash
 cd /usr/src
 wget -S https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.10.90.tar.xz
 tar xpvf ./linux-3.10.90.tar.xz -C /usr/src/
 ```
-Download netmap:
+либо из репозитория:
+```bash
+cd /usr/src
+apt-get source linux-image-3.10.90
+```
+скачиваем netmap:
 ```bash
 git clone https://github.com/luigirizzo/netmap
 ```
-Configure the module assembly to enter the kernel source, and what we need drivers
+настраиваем сборку модуля указывая исходники ядра и какие драйверы нам нужны
 ```bash
 cd ./netmap/LINUX/
 ./configure --kernel-sources=/usr/src/linux-3.10.90 --drivers=igb,ixgbe,e1000e
 ```
-Build:
+собираем:
 ```bash
 make
 ```
-Load kernel modules in system:
+загружаем модули в систему:
 ```bash
 insmod /usr/src/netmap/LINUX/netmap.ko
-# for 10Gb/sec Intel ethernet adapter
+# для 10Гб/сек сетевой карты Intel
 rmmod ixgbe && insmod /usr/src/netmap/LINUX/ixgbe/ixgbe.ko
-# for 1Gb/sec Intel ethernet adapter (may be other drivers)
+# для 1Гб/сек сетевой карты
 rmmod igb && insmod /usr/src/netmap/LINUX/igb/igb.ko
 rmmod e1000e && insmod /usr/src/netmap/LINUX/e1000e/e1000e.ko
 ```
-then the system should appear interface with netmap:
+после этого в системе должен появиться интерфейс работы с netmap:
 ```bash
 # ls /dev/netmap 
 /dev/netmap
 ```
 
-### Installing ddosdetector ###
-Build ddosdetector from source:
+### Установка ddosdetector ###
+собираем ddosdetector:
 ```bash
 git clone https://velizarx@bitbucket.org/velizarx/ddosdetector.git
 cd ./ddosdetector
 make
 ```
 
-## Run ##
-To run the current user must have permissions to read and write to netmap interface (*/dev/netmap*). The network interface must be enabled. Network card driver that supports netmap must be loaded:
+## Запуск ##
+Для запуска проекта, у текущего пользователя должны быть права доступа на чтение и запись к интерфейсу netmap (*/dev/netmap*). Сетевой интерфейс должен быть включен. Драйвер сетевой карты с поддержкой netmap должен быть загружен:
 ```bash
 # lsmod | grep netmap
 netmap                143360  27 ixgbe
 # modinfo ixgbe | grep depends 
 depends:        mdio,netmap,dca
 ```
-**ATTENTION! If the connection to the remote current server (SSH, telnet, etc.), start ddosdetector system on the same network interface, through which the connection will result in the loss of access. Netmap driver disables the network card from the operating system!**
+**Если подключение к серверу удаленное (SSH, telnet и т.д.), запуск системы ddosdetector на том же сетевом интерфейсе, через который осуществляется подключение, приведет к потере доступа, так как netmap драйвер отключает сетевую карту от ОС!**
 
-Run ddosdetector (in example interface eth4):
+Запуск ddosdetector (в примере интерфейс eth4):
 ```bash
 cd <path_to_ddosdetector_directory>
 ./ddosdetector -i eth4 -r ~/ddosdetector.rules -p /tmp/ddosd.sock -l ~/ddosdetector.log
 ```
-Where:
-* *-i eth4 (**parameter is required**)* - *eth4* interface system that gets mirrored traffic;
+где:
+* *-i eth4 (**параметр обязателен**)* - *eth4* интерфейс запуска системы (на этом интерфейсе должен быть драйвер netmap см. README);
 * *-r ~/ddosdetector.rules* - файл откуда будут загружены правила (этот параметр необязателен, по-умолчанию поиск файла производится по пути */etc/ddosdetector.rules*);
-* *-p /tmp/ddosd.sock* - how to run the management server (in this case, the UNIX socket, the file */tmp/ddosd.sock*), may also be the path to the file or port number (then run TCP server to 127.0.0.1 and port specified) parameter is optional. By default, TCP server runs on port 9090;
-* *-l ~/ddosdetector.log* - the path to the log file, the default output in the stdout
+* *-p /tmp/ddosd.sock* - как запустить консоль (в данном случае UNIX socket, файл */tmp/ddosd.sock*), может быть путем к файлу, либо номером порта (тогда запускается TCP сервер на 127.0.0.1 и указанном порту), параметр необязателен, по-умолчанию запускается TCP сервер на порту 9090;
+* *-l ~/ddosdetector.log* - путь к лог файлу, по-умолчанию вывод в консоль
 
-then you can connect to the system:
+после этого к системе можно подключиться:
 ```bash
 socat - UNIX-CONNECT:/tmp/ddosd.sock
 ```
 
-## Control ##
-### Configuration files ###
-When you start the system tries to read the two configuration files:
-* /etc/ddosdetector.conf - general system settings
-* /etc/ddosdetector.rules - saved rules
+## Управление ##
+### Конфигурационные файлы ###
+При запуске система пытается прочитать два конфигурационных файла:
+* /etc/ddosdetector.conf - общие настройки системы
+* /etc/ddosdetector.rules - сохраненные правила
 
-File */etc/ddosdetector.conf* can contain the following settings (the value of the name):
+Файл */etc/ddosdetector.conf* сожет содержать следующие настройки (значение натроек понятно из названия):
 ```ini
 [Main]
 Interface = eth0
@@ -122,30 +125,32 @@ Host = localhost
 Port = 8086
 Period = 30
 ```
-If the configuration file exists, the system start-up is reduced to the command execution:
+Если конфигурационный файл существует, то запуск системы сводится к выполнению команды:
 ```bash
 ./ddosdetector
 ```
+### Подключение к серверу управления ###
+Для управления системой необходимо подключиться к запущенному демону. В зависимости от параметров запуска подключаться необходимо либо к TCP серверу либо к UNIX socket.
 
-### Connect to control server ###
-To manage the system you want to connect to a running daemon. Depending on the start-up parameters, you must either connect to a TCP server or a UNIX socket.
-
-#### TCP server ####
+#### TCP сервер ####
 ```bash
 telnet 127.1 9090
 ```
-where 9090 - this is the default start port or the specified port option
+где 9090 - это порт запуска по-умолчанию, либо указанный параметром порт
 
-#### UNIX socket server ####
+#### UNIX socket сервер ####
 ```bash
 # socat - UNIX-CONNECT:/tmp/ddosd.sock 
 ddoscontrold>
 ```
-where */tmp/ddosd.sock* - socket file specified at startup
+где /tmp/ddosd.sock - сокет-файл указанный при запуске системы
 
-### Setting ###
-After connecting to the management server, you can display a list of all available commands:
-```bash
+### Настройка ###
+После подключения к серверу управления можно вывести список всех доступных команд управления:
+
+```
+#!bash
+
 $ socat - UNIX-CONNECT:/tmp/ddosd.sock 
 ddoscontrold> help
 Console commands:<type> - may be TCP, UDP or ICMP; <num> - number (0..65535);
@@ -193,8 +198,9 @@ ICMP rule options:
 
 ```
 
-Displayed in the help options are divided into two types: the parameters of the rules collection management (Part One "Console commands"), and the parameters of the rules themselves (all of which is below).
-Traffic filtering rules can be added to one of the branches of L4 protocol level, is responsible for this mandatory argument *<type>*, and when inserting and removing the right index to the rule - it is his number (parameter *<num>*):
+Отображаемые в help параметры делятся на два типа: параметры управления коллекцией правил (первая часть "Console commands") и параметры самих правил (все что ниже).
+
+Правила фильтрации трафика могут быть добавлены в одну из веток протоколов L4 уровня, за это отвечает обязательный аргумент *<type>*, также при вставке и удалении правила указатель на правило - это его номер (параметр *<num>*):
 
 ```bash
 add rule <type> <rule>              add new rule
@@ -203,8 +209,9 @@ del rule <type> <num>               add new rule
 show rules                          print all rules with counters
 ```
 
-#### Show rules ####
-To view the operating rules and counters, use the command: **show rules**
+#### Просмотр правил ####
+Для просмотра работающих правил и их счетчиков используется команда: **show rules**
+
 ```bash
 ddoscontrold> show rules
 TCP rules (num, rule, counter):
@@ -224,10 +231,10 @@ ICMP rules (num, rule, counter):
     0:   -d 92.53.96.141/32 --pps-th 100p --type =8 --code =0   : 2.00p/s (1.57Kb/s), 2 packets, 196 bytes
     1:   -d 92.53.96.141/32 --pps-th 100p --type =0 --code =0   : 0.00p/s (0.00b/s), 0 packets, 0 bytes
 ```
-the first digit - number command, then the command text. After the second colon - counters rules. The entire list of rules divided the protocols L4 level.
+первая цифра - номер команды, далее текст команды. После второго двоеточия - счетчики правила. Весь список правил делится по протоколам L4 уровня.
 
-#### Add rule ####
-For example, the command for adding a rule of capture TCP SYN packets with the Window size = 0 (SYN Flood attack) with an entry in the log if the packet traffic of more than 10MB / s for 1 minute:
+#### Добавление правил ####
+Например, команда добавления правила отлова TCP SYN пакетов с Window size = 0 (SYN Flood атака) с записью в лог если трафик таких пакетов превышает 10Мб/сек в течении 1 минуты:
 ```bash
 ddoscontrold> add rule TCP -d 92.53.96.141/32 --bps-th 10Mb --win =0 --tcp-flag S:1,A:0 --action log:/tmp/test_syn.log --pps-th-period 60
 ddoscontrold> show rules
@@ -249,9 +256,9 @@ ICMP rules (num, rule, counter):
     0:   -d 92.53.96.141/32 --pps-th 100p --type =8 --code =0   : 0.00p/s (0.00b/s), 1269760 packets, 124436480 bytes
     1:   -d 92.53.96.141/32 --pps-th 100p --type =0 --code =0   : 0.00p/s (0.00b/s), 0 packets, 0 bytes
 ```
-The right to add to the end of a chain of rules TCP.
-#### Delete rule ####
-Removing rules made by its number and type:
+Правило добавилось в конец цепочки правил TCP.
+#### Удаление правил ####
+Удаление правила производится по его номеру и типу:
 ```bash
 ddoscontrold> del rule TCP 11
 Error operation rule: not found 11 rule
@@ -274,8 +281,8 @@ ICMP rules (num, rule, counter):
     0:   -d 92.53.96.141/32 --pps-th 100p --type =8 --code =0   : 0.00p/s (0.00b/s), 5201125376 packets, 509710131200 bytes
     1:   -d 92.53.96.141/32 --pps-th 100p --type =0 --code =0   : 0.00p/s (0.00b/s), 0 packets, 0 bytes
 ```
-#### Reload rules from file ####
-At startup, the system checks the configuration file previously saved rules (by default */etc/ddosdetector.rules*). If the reference system is already running, you can restart the rules from the file manually. Restart the rules of the file is performed either from the command control console **reload rules** any SIGHUP signal sent to the demon. For example rules file has the contents:
+#### Перезагрузка правил из файла ####
+При запуске, система проверяет конфигурационный файл сохраненных ранее правил (по умолчанию */etc/ddosdetector.rules*). Если сиситема уже запущена, можно перезагрузить правила из файла вручную. Перезагрузка правил из файла выполняется либо из консоли управления командой **reload rules** либо отправкой сигнала SIGHUP демону. Например файл правил имеет содержимое:
 ```bash
 $ cat ~/ddosdetector.rules
 TCP -d 92.53.96.141/32 --pps-th 100p --seq =0 --pps-th-period 60 --action log:/tmp/test.log --next
@@ -294,7 +301,7 @@ ICMP -d 92.53.96.141/32 --pps-th 100p --type =8 --code =0
 ICMP -d 92.53.96.141/32 --pps-th 100p --type =0 --code =0
 TCP -d 92.53.96.141/32 --bps-th 10Mb --win =0 --tcp-flag S:1,A:0 --action log:/tmp/test_syn.log --pps-th-period 60 
 ```
-reload file:
+загружаем файл:
 ```bash
 ddoscontrold> show rules
 TCP rules (num, rule, counter):
@@ -322,11 +329,11 @@ ICMP rules (num, rule, counter):
 ```
 
 ## Future ##
-* Save the current rules to a file
-* Option to run in daemon mode
-* Trigger to stop attacks
-* "Monitor" display counters in the Management Console. Enter "monitor rules" command causes the page to display statistics and updated once a second. Cancel on *Ctrl^D*;
-* SNMP monitoring counters rules
+* Сохранение текущих правил в файл
+* Ключ запуска в режиме демона
+* Срабатывание триггера при прекращении атаки;
+* "monitor" отображение счетчиков в консоли управления. При вводе команды "monitor rules" страница будет выводить статистику и обновляться раз в секунду. Отмена по Ctrl^D;
+* SNMP мониторинг счетчиков правил
 
-## For developers ##
-Description of the project structure of the code in a file (currently only in Russian): ./docs/FOR_DEVELOPERS.md
+## Для разработчиков ##
+Описание структуры кода проекта в файле (в настоящий моммент только на русском): ./docs/FOR_DEVELOPERS.md

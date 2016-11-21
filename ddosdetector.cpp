@@ -22,15 +22,15 @@
 #include "collector.hpp"
 #include "controld.hpp"
 
-// Основной логер
+// Main logger
 log4cpp::Category& logger = log4cpp::Category::getRoot();
 
 
 /*
-   Основной поток - watcher. Следит за синхронизацией правил во всех
-   потоках-обработчиках очередей сетевой карты, собирает данные со
-   счетчиков правил каждого потока, вычисляет итоговые показатели, проверяет
-   триггеры на срабатывание и добавляет задания на выполнение.
+ The main thread - watcher. Monitors the synchronization of the rules in all
+ threads processing queuing network card. Collects data counters the rules of
+ each stream. Computes totals. Checks triggers on the operation and adds a
+ task to perform.
 */
 void watcher(std::vector<std::shared_ptr<RulesCollection>>& collect,
     std::shared_ptr<RulesCollection> main_collect,
@@ -44,33 +44,33 @@ void watcher(std::vector<std::shared_ptr<RulesCollection>>& collect,
         int i = 0;
         for(auto& c: collect)
         {
-            // проверка акутальности таблиц правил у потока
+            // check the relevance of the rules table in thread
             if(*c != *main_collect) 
             {
-                // синхронизируем правила потока
+                // synchronize the thread's rules
                 *c = *main_collect; 
                 logger.debug("update rules list in thread %d", i);
             }
-            // прибавляем счетчики i-того потока
+            // add the counters of the i-thread
             *main_collect += *c; 
             i++;
         }
-        // вычисляем delta показатели за 1 секунду времени
+        // calculate delta metrics for the second time 1
         main_collect->calc_delta(prev_collect);
-        // сохраняем новые счетчики и правила для следующего шага цикла
+        // save the new counters and rules for the next cycle step
         prev_collect = *main_collect;
-        // сразу после обновления правил нет смысла проверять
-        // триггеры, данные будут не актуальны
+        // immediately after updating the rules does not make sense to check
+        // triggers, the data is not relevant
         if(last_change == main_collect->last_change)
         {
-            // проверяем триггеры
+            // check triggers
             main_collect->check_triggers(*task_list, *influx);
         }
         else
         {
             last_change = main_collect->last_change;
         }
-        // на секунду засыпаем
+        // sleep one second
         boost::this_thread::sleep_for(boost::chrono::seconds(1));
     }
 }
@@ -87,24 +87,20 @@ void monitor(std::shared_ptr<RulesCollection> collect,
         {
             logger.error("Bad request, curl lib return code: %d", code);
         }
-
-        // засыпаем
+        // sleep
         boost::this_thread::sleep_for(boost::chrono::seconds(period));
     }
 }
 
 /*
- Сервер управления controld (TCP или UNIX socket). Сервер привязывается к
- заранее созданному io_service объекту, для общего контроля.
+ Thread sends the data to the database InfluxDB, each period
 */
 void start_control(boost::asio::io_service& io_service,
     std::string port, std::shared_ptr<RulesCollection> collect)
 {
     try
     {
-        // инициализируем сервер
         ControlServer serv(io_service, port, collect);
-        // запускаем сервер
         io_service.run();
     }
     catch (std::exception& e)
@@ -116,37 +112,37 @@ void start_control(boost::asio::io_service& io_service,
 }
 
 /*
- Обработчик очереди заданий. Разбирает очередь task_list в которой содержатся
- задания TriggerJob и запускает их по очереди. Обработчик сразу реагирует на
- добавление задания в очередь (условная переменная), либо ждет секунду (это
- сделано для возможности прерывания процесса ожидания).
+ Handler jobs in the queue. Parse all task_list which contains TriggerJob tasks
+ and starts them in turn. The handler responds immediately to adding a job
+ queue (dummy) or second waiting (this made for possible interrupt waiting
+ process).
 */
 void task_runner(std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
 {
-    // выполняемая задача
+    // buffer for task
     action::TriggerJob cur_job;
     for(;;)
     {
-        // Проверям был ли прерван поток
+        // check exit
         boost::this_thread::interruption_point();
-        // ждем одну секунду или появления задачи
+        // wait ano second or change status queue
         if(task_list->wait_and_pop(cur_job, 1000)) 
         {
-            // старт задачи
+            // start task
             cur_job.run(); 
         }
     }
 }
 
 int main(int argc, char** argv) {
-    // Настройки по-умолчанию
+    // Default settings
     std::string interface = "";
     std::string config_file = "/etc/ddosdetector.conf";
     std::string rules_file = "/etc/ddosdetector.rules";
     std::string log_file = "";
     std::string port = "9090";
     bool debug_mode = false;
-    // Мониторинг в InfluxDB
+    // Default for InfluxDB
     std::string influx_enable = "no";
     std::string influx_user = "";
     std::string influx_pass = "";
@@ -155,7 +151,7 @@ int main(int argc, char** argv) {
     unsigned int influx_port = 8086;
     unsigned int influx_period = 60;
 
-    // Опции запуска приложения
+    // CLI arguments
     namespace po = boost::program_options;
     po::options_description argv_opt("General options");
     argv_opt.add_options()
@@ -167,7 +163,7 @@ int main(int argc, char** argv) {
         ("port,p", po::value<std::string>(&port), "port for controld tcp server (may be unix socket file)")
         ("debug,d", "enable debug output")
     ;
-
+    // Configuration file options
     po::options_description config_file_opt("Configuration file");
     config_file_opt.add_options()
         ("Main.Interface", po::value<std::string>(&interface))
@@ -182,8 +178,7 @@ int main(int argc, char** argv) {
         ("IndluxDB.Port", po::value<unsigned int>(&influx_port))
         ("IndluxDB.Period", po::value<unsigned int>(&influx_period))
     ;
-
-    // Настройки обработчика команд для правил слежения
+    // Base rule's options
     po::options_description base_opt("Base rule options");
     base_opt.add_options()
         ("pps-th", po::value<std::string>(), "trigger threshold incomming packets per second (p,Kp,Mp,Tp,Pp)")
@@ -194,13 +189,13 @@ int main(int argc, char** argv) {
         ("comment,c", po::value<std::string>(), "comment for rule")
         ("next", "go to next rule in list")
     ;
-    // L3 header опции
+    // L3 header options
     po::options_description ipv4_opt("IPv4 rule options");
     ipv4_opt.add_options()
         ("dstip,d", po::value<std::string>(), "destination ip address/net")
         ("srcip,s", po::value<std::string>(), "source ip address/net")
     ;
-    // L4 header опции
+    // L4 header options
     po::options_description tcp_opt("TCP rule options");
     tcp_opt.add_options()
         ("dport", po::value<std::string>(), "destination port")
@@ -223,27 +218,27 @@ int main(int argc, char** argv) {
         ("code", po::value<std::string>(), "check if ICMP packet code = or > or < arg")
     ;
 
-    // Параметры для команды help(), собраны все опции
+    // Aggregate options for help() commands
     po::options_description help_opt;
     help_opt.add(base_opt).add(ipv4_opt).add(tcp_opt).add(udp_opt).add(icmp_opt);
 
-    // Параметры для TCP правил: базовые опции правил + ipv4 опции + TCP опции
+    // Aggregate options for TCP rules: base options + ipv4 options + TCP options
     po::options_description tcp_rule_opt;
     tcp_rule_opt.add(base_opt).add(ipv4_opt).add(tcp_opt);
 
-    // Параметры для UDP правил: базовые опции правил + ipv4 опции + UDP опции
+    // Aggregate options for UDP rules: base options + ipv4 options + UDP options
     po::options_description udp_rule_opt;
     udp_rule_opt.add(base_opt).add(ipv4_opt).add(udp_opt);
 
-    // Параметры для ICMP правил: базовые опции правил + ipv4 опции + ICMP опции
+    // Aggregate options for ICMP rules: base options + ipv4 options + ICMP options
     po::options_description icmp_rule_opt;
     icmp_rule_opt.add(base_opt).add(ipv4_opt).add(icmp_opt);
 
-    // Обработка аргументов
+    // Parse arguments
     po::variables_map vm;
     try 
     {
-        // Загрузка конфигурации из файла если он существует
+        // Load configuration from file
         std::ifstream cnf(config_file);
         if(cnf)
         {
@@ -255,7 +250,6 @@ int main(int argc, char** argv) {
             std::cerr << "Configuration file: " << config_file
                       << " not found" << std::endl;
         }
-        // Разбор параметров командной строки
         po::store(po::parse_command_line(argc, argv, argv_opt), vm);
         po::notify(vm);
     } 
@@ -274,11 +268,11 @@ int main(int argc, char** argv) {
         return 0; 
     }
 
-    // Включение debug режима
+    // Enable debug
     if(vm.count("debug"))
         debug_mode = true;
 
-    // Инициализация логирования
+    // Setup logging
     init_logging(logger, debug_mode, log_file);
 
     if(interface == "")
@@ -287,7 +281,7 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    // Включение promisc mode на сетевой карте (работает только в Linux)
+    // Enable promisc mode on network adapter (only in Linux)
 #ifdef __linux__
     manage_interface_promisc_mode(interface, 1);
     logger << log4cpp::Priority::WARN
@@ -297,33 +291,33 @@ int main(int argc, char** argv) {
            << " gro off gso off tso off lro off";
 #endif  /* __linux__ */
 
-    // Основной объект io_service, используется для отлова
-    // сигналов и работы сервера controld.
+    // The main object io_service, is used to capture
+    // Signals and work controld server.
     boost::asio::io_service io_s;
 
-    // Ловим сигналы  SIGINT, SIGTERM для завершения программы.
+    // Catch signals SIGINT, SIGTERM to complete the program.
     boost::asio::signal_set signals(io_s, SIGINT, SIGTERM);
     signals.async_wait(boost::bind(&boost::asio::io_service::stop, &io_s));
 
-    // Лист потоков. В этот лист буду добавляться все потоки программы,
-    // для отслеживания состояния и корректного прерывания
+    // Thread sheet. This list will be added to all streams of the program,
+    // to monitor the condition and safely terminate
     boost::thread_group threads;
 
-    // Вектор указателей на листы правил. С каждым отдельным листом
-    // правил работает один поток. Каждый лист синхронизируется потоком
-    // watcher с эталонным листом main_collect.
+    // Vector rules on lists of pointers. Each separate sheet
+    // Rules works the same thread. Each sheet is synchronized flow
+    // Watcher with a reference sheet main_collect.
     std::vector<std::shared_ptr<RulesCollection>> threads_coll;
 
-    // Эталонная колекция правил, по ней будут ровняться все потоки
+    // Reference collection of rules for it will be all the threads
     auto main_collect = std::make_shared<RulesCollection>(help_opt,
                                                       tcp_rule_opt,
                                                       udp_rule_opt,
                                                       icmp_rule_opt);
 
-    // Очередь заданий для сработавших триггеров
+    // Queues for TriggerJobs
     auto  task_list = std::make_shared<ts_queue<action::TriggerJob>>();
 
-    // InfluxDB client для статистики
+    // InfluxDB client
     auto influx_client = std::make_shared<InfluxClient>(influx_host,
                                                         influx_port,
                                                         influx_db,
@@ -331,18 +325,17 @@ int main(int argc, char** argv) {
                                                         influx_pass,
                                                         influx_enable);
 
-    // Загрузка правил из файла
+    // Load rules from file
     /*
-        RulesFileLoader загружает текущий конфиг из файла при инициализации, а
-        также устанавливает новый signal_set для перехвата SIGHUP и обновления
-        конфига. Каждый раз при попытке перезагрузить файл правил, выполняется
-        проверка на существование файла. Сигнал привязывается также к основному
-        io_service.
+     RulesFileLoader loads the current configuration of the file during
+     initialization and also sets new signal_set SIGHUP to intercept and
+     updates config. Every time you try to reload the rules file is executed
+     checking for file existence. The signal is also tied to the main
+     io_service.
     */
     RulesFileLoader rul_loader(io_s, rules_file, main_collect);
     try
     {
-        // читаем конфиг в первый раз и привязываем сигнал
         rul_loader.start();
     }
     catch(std::exception& e)
@@ -351,14 +344,14 @@ int main(int argc, char** argv) {
         return 1;
     }
     /*
-        Старт netmap интерфейса и запуск потоков обрабатывающих очереди сетевой
-        карты. Класс заполняет вектор листов правил (threads_coll) по мере
-        создания потоков привязанных к очередям сетевой карты.
+     Start netmap interface and start processing the queue of network threads
+     cards. Class fills vector sheet rules (threads_coll) as
+     creating flows linked to queues network card.
     */
     NetmapReceiver nm_recv(interface, threads, threads_coll, *main_collect);
     try
     {
-        // подключаемся к драйверу netmap, запускаем потоки-получатели пакетов
+        // connect to netmap, run threads
         nm_recv.start();
     }
     catch(NetmapException& e)
@@ -367,21 +360,21 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // старт потока наблюдателя
+    // run thread-watcher
     threads.add_thread(new boost::thread(watcher, std::ref(threads_coll),
                                          main_collect, task_list,
                                          influx_client));
     logger.debug("Start watcher thread");
 
-    // старт TCP сервера управления
+    // run control server
     threads.add_thread(new boost::thread(start_control,
                                          std::ref(io_s), port, main_collect));
 
-    // старт обработчика заданий триггеров
+    // run triggerjob watcher thread
     threads.add_thread(new boost::thread(task_runner, task_list));
     logger.debug("Starting runner thread");
 
-    // старт потока мониторинга
+    // start monitor thread
     if(influx_client->is_enable())
     {
         threads.add_thread(new boost::thread(monitor, main_collect,
@@ -389,7 +382,7 @@ int main(int argc, char** argv) {
         logger.debug("Start monitor thread");
     }
 
-    // Ждем сигналы и подключения к TCP/UNIX серверу
+    // run TCP/UNIX socket server
     try
     {
         io_s.run();
@@ -399,11 +392,10 @@ int main(int argc, char** argv) {
         logger << log4cpp::Priority::ERROR << "Signal handler error: " << e.what();
     }
 
-    // Пойман сигнал завершения.
-    // Завершение всех потоков
+    // catch signal, interrupt all threads
     threads.interrupt_all();
     logger.info("Waiting threads.....");
-    // Ожидаем корректное завершение всех потоков и служб
+    // wait all threads
     threads.join_all();
 
     return 0;
