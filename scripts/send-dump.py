@@ -24,6 +24,7 @@ EMAIL_TEXT = u'''Дамп трафика атаки во вложении. \
 Локальная копия дампа сохранена в каталоге {0} на сервере {1}'''
 EMAIL_SUBJECT = u'''Обнаружена DDoS атака {1} на сервер {0}'''
 
+
 def mail(subject=u'DDoS detect',
          text=u'text',
          recipients=[],
@@ -45,17 +46,17 @@ def mail(subject=u'DDoS detect',
             f.read(),
             Name=os.path.basename(file)
         )
-        part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(file)
+        part[
+            'Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(file)
         msg.attach(part)
     # Send mail
     p = Popen(["/usr/sbin/sendmail", "-t"], stdin=PIPE)
     p.communicate(msg.as_string())
 
-    print msg.as_string()
 
 def create_dump(catch_filter="tcp", dump=""):
     pkts = sniff(iface=INTERFACE, filter=catch_filter,
-          L2socket=None, count=CAPTURE_PACKETS, timeout=TIMEOUT)
+                 L2socket=None, count=CAPTURE_PACKETS, timeout=TIMEOUT)
     wrpcap(dump, pkts)
 
 
@@ -71,6 +72,6 @@ if __name__ == "__main__":
     create_dump(pcap_filter, dump_file)
     # send dump to email
     mail(subject=EMAIL_SUBJECT.format(params[1], params[2]),
-        text=EMAIL_TEXT.format(DUMP_ARCHIVE, os.uname()[1]),
-        recipients=EMAIL_RECIPIENTS,
-        file=dump_file)
+         text=EMAIL_TEXT.format(DUMP_ARCHIVE, os.uname()[1]),
+         recipients=EMAIL_RECIPIENTS,
+         file=dump_file)
