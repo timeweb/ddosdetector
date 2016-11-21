@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
 #endif  /* __linux__ */
 
     // The main object io_service, is used to capture
-    // Signals and work controld server.
+    // Signals and work controld server.
     boost::asio::io_service io_s;
 
     // Catch signals SIGINT, SIGTERM to complete the program.
@@ -304,8 +304,8 @@ int main(int argc, char** argv) {
     boost::thread_group threads;
 
     // Vector rules on lists of pointers. Each separate sheet
-    // Rules works the same thread. Each sheet is synchronized flow
-    // Watcher with a reference sheet main_collect.
+    // Rules works the same thread. Each sheet is synchronized flow
+    // Watcher with a reference sheet main_collect.
     std::vector<std::shared_ptr<RulesCollection>> threads_coll;
 
     // Reference collection of rules for it will be all the threads
