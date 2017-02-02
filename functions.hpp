@@ -67,6 +67,8 @@ std::string format_len(const std::string& s, unsigned int len);
 typedef boost::escaped_list_separator<char> separator_type;
 std::vector<std::string> tokenize(const std::string& input,
                                   const separator_type& separator);
+std::vector<std::string> tokenize(const std::string& input,
+                                  const char *symbol);
 std::vector<std::string> tokenize(const std::string& input);
 /*
  возвращает номер элемента value в списке vec, или вызывает исключение

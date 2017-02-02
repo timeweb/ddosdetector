@@ -86,12 +86,12 @@ depends:        mdio,netmap,dca
 Run ddosdetector (in example interface eth4):
 ```bash
 cd <path_to_ddosdetector_directory>
-./ddosdetector -i eth4 -r ~/ddosdetector.rules -p /tmp/ddosd.sock -l ~/ddosdetector.log
+./ddosdetector -i eth4 -r ~/ddosdetector.rules -s /tmp/ddosd.sock -l ~/ddosdetector.log
 ```
 Where:
 * *-i eth4 (**parameter is required**)* - *eth4* interface system that gets mirrored traffic;
 * *-r ~/ddosdetector.rules* - файл откуда будут загружены правила (этот параметр необязателен, по-умолчанию поиск файла производится по пути */etc/ddosdetector.rules*);
-* *-p /tmp/ddosd.sock* - how to run the management server (in this case, the UNIX socket, the file */tmp/ddosd.sock*), may also be the path to the file or port number (then run TCP server to 127.0.0.1 and port specified) parameter is optional. By default, TCP server runs on port 9090;
+* *-s /tmp/ddosd.sock* - how to run the management server (in this case, the UNIX socket, the file */tmp/ddosd.sock*), may also be the path to the file or ip:port (then run TCP server to ip and port specified) parameter is optional. By default, TCP server runs on 127.0.0.1:9090;
 * *-l ~/ddosdetector.log* - the path to the log file, the default output in the stdout
 
 then you can connect to the system:
@@ -111,7 +111,7 @@ File */etc/ddosdetector.conf* can contain the following settings (the value of t
 Interface = eth0
 Rules = /etc/ddosdetector.rules
 Log = /var/log/ddosdetector.log
-Port = 9090
+Listen = 127.0.0.1:9090
 
 [IndluxDB]
 Enable = yes
@@ -134,7 +134,7 @@ To manage the system you want to connect to a running daemon. Depending on the s
 ```bash
 telnet 127.1 9090
 ```
-where 9090 - this is the default start port or the specified port option
+where 127.1 and 9090 - this is the default start ip:port or specified ip:port options
 
 #### UNIX socket server ####
 ```bash

@@ -21,3 +21,10 @@ const char* NetmapException::what() const throw()
 {
     return message_.c_str();
 }
+
+ControldException::ControldException(const std::string& message) 
+    : message_(message) {};
+const char* ControldException::what() const throw()
+{
+    return message_.c_str();
+}
