@@ -142,8 +142,8 @@ void task_runner(std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
 int main(int argc, char** argv) {
     // Default settings
     std::string interface = "";
-    std::string config_file = "/etc/ddosdetector.conf";
-    std::string rules_file = "/etc/ddosdetector.rules";
+    std::string config_file = "/etc/ddosdetector/conf.ini";
+    std::string rules_file = "/etc/ddosdetector/rules.conf";
     std::string log_file = "";
     std::string controld_serv = "127.0.0.1:9090";
     bool debug_mode = false;
@@ -162,8 +162,8 @@ int main(int argc, char** argv) {
     argv_opt.add_options()
         ("help,h", "show this help")
         ("interface,i", po::value<std::string>(&interface), "network interface (default eth4)")
-        //("config,c", po::value<std::string>(&config_file), "load config (default /etc/ddosdetector.conf)")
-        ("rules,r", po::value<std::string>(&rules_file), "load rules from file (default /etc/ddosdetector.rules)")
+        //("config,c", po::value<std::string>(&config_file), "load config (default /etc/ddosdetector/conf.ini)")
+        ("rules,r", po::value<std::string>(&rules_file), "load rules from file (default /etc/ddosdetector/rules.conf)")
         ("log,l", po::value<std::string>(&log_file), "log file (default output to console)")
         ("server,s", po::value<std::string>(&controld_serv), "ip:port or unix socket file for controld server")
         ("debug,d", "enable debug output")
