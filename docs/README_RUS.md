@@ -1,7 +1,7 @@
 # Детектор DDoS атак #
 Система **ddosdetector** - это гибкий инструмент для анализа сетевого трафика и автоматизации процесса защиты от DDoS атак. Система основана на фреимворке [Luigi Rizzo](https://github.com/luigirizzo/netmap) [netmap](https://habrahabr.ru/post/183832/) и спроектирована для работы с большим объемом трафика (10Гб/сек и больше) без потерь производительности.
 
-Система написана на языке C++ (стандарт 11) с использованием OpenSource библиотек *STL* и *Boost (1.55)*. Написание и сборка производилось на *Ubuntu 12.04.5 LTS* и компиляторе *g++-4.8*. Для статического анализа кода, проверки стиля и поиска грубых ошибок использовался *cppcheck* версии 1.73.
+Система написана на языке C++ (стандарт 11) с использованием OpenSource библиотек *STL* и *Boost (1.58)*. Написание и сборка производилось на *Ubuntu 16.04 LTS* и компиляторе *g++-5*. Для статического анализа кода, проверки стиля и поиска грубых ошибок использовался *cppcheck* версии 1.73.
 
 Для мониторинга и сбора статистики используется InfluxDB.
 ![Grafana](images/grafana.png)
@@ -71,6 +71,7 @@ rmmod e1000e && insmod /usr/src/netmap/LINUX/e1000e/e1000e.ko
 ### Установка ddosdetector ###
 собираем ddosdetector:
 ```bash
+sudo apt-get install g++ libboost-all-dev libcurl4-gnutls-dev liblog4cpp5-dev
 git clone https://velizarx@bitbucket.org/velizarx/ddosdetector.git
 cd ./ddosdetector
 make

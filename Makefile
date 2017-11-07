@@ -1,10 +1,10 @@
 UNAME_S := $(shell uname -s)
-CXX = g++-4.8
+CXX = g++
 
 PROGS = ddosdetector
 CLEANFILES = $(PROGS) *.o
 
-LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lcurl
+LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lcurl -lpthread
 CPPFLAGS = -std=c++11 -Wall #-O2
 CPPFLAGS += -I ./sys -I ./proto
 

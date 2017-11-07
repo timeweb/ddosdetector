@@ -1,7 +1,7 @@
 # DDoS attack detector #
 Ddosdetector System - a flexible tool for analyzing network traffic and automation of the process of protection against DDoS attacks. The system is based on the framework, [Luigi Rizzo](https://github.com/luigirizzo/netmap) [netmap](https://habrahabr.ru/post/183832/) and is designed to work with a large volume of traffic (10GB / sec and more) without loss of performance.
 
-The system is written in C++ (Standard 11) using *STL* and *Boost (1.55)*. Writing and assembling was done on *Ubuntu 12.04.5 LTS* and compiler *g++4.8*. For static analysis and research style blunders used *cppcheck* version 1.73.
+The system is written in C++ (Standard 11) using *STL* and *Boost (1.58)*. Writing and assembling was done on *Ubuntu 16.04 LTS* and compiler *g++-5*. For static analysis and research style blunders used *cppcheck* version 1.73.
 
 InfluxDB can be used for monitoring and collection of statistics.
 ![Grafana](docs/images/grafana.png)
@@ -68,6 +68,7 @@ then the system should appear interface with netmap:
 ### Installing ddosdetector ###
 Build ddosdetector from source:
 ```bash
+sudo apt-get install g++ libboost-all-dev libcurl4-gnutls-dev liblog4cpp5-dev
 git clone https://velizarx@bitbucket.org/velizarx/ddosdetector.git
 cd ./ddosdetector
 make
