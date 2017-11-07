@@ -347,30 +347,75 @@ void RulesFileLoader::reload_config()
                     }
                     if(t_cmd[0] == "TCP") // добавляем TCP правило
                     {
-                        buff_collect.tcp.add_rule(
-                            TcpRule(std::vector<std::string>(
-                                    t_cmd.begin() + 1, t_cmd.end()
+                        if(is_number(t_cmd[1]))
+                        {
+                            int num = std::atoi(t_cmd[1].c_str());
+                            buff_collect.tcp.insert_rule(
+                                num,
+                                TcpRule(
+                                    std::vector<std::string>(
+                                        t_cmd.begin() + 2, t_cmd.end()
+                                    )
                                 )
-                            )
-                        );
+                            );
+                        }
+                        else
+                        {
+                            buff_collect.tcp.add_rule(
+                                TcpRule(std::vector<std::string>(
+                                        t_cmd.begin() + 1, t_cmd.end()
+                                    )
+                                )
+                            );
+                        }
                     }
                     else if(t_cmd[0] == "UDP") // добавлем UDP правило
                     {
-                        buff_collect.udp.add_rule(
-                            UdpRule(std::vector<std::string>(
-                                    t_cmd.begin() + 1, t_cmd.end()
+                        if(is_number(t_cmd[1]))
+                        {
+                            int num = std::atoi(t_cmd[1].c_str());
+                            buff_collect.udp.insert_rule(
+                                num,
+                                UdpRule(
+                                    std::vector<std::string>(
+                                        t_cmd.begin() + 2, t_cmd.end()
+                                    )
                                 )
-                            )
-                        );
+                            );
+                        }
+                        else
+                        {
+                            buff_collect.udp.add_rule(
+                                UdpRule(std::vector<std::string>(
+                                        t_cmd.begin() + 1, t_cmd.end()
+                                    )
+                                )
+                            );
+                        }
                     }
                     else if(t_cmd[0] == "ICMP") // добавляем ICMP правило
                     {
-                        buff_collect.icmp.add_rule(
-                            IcmpRule(std::vector<std::string>(
-                                    t_cmd.begin() + 1, t_cmd.end()
+                        if(is_number(t_cmd[1]))
+                        {
+                            int num = std::atoi(t_cmd[1].c_str());
+                            buff_collect.icmp.insert_rule(
+                                num,
+                                IcmpRule(
+                                    std::vector<std::string>(
+                                        t_cmd.begin() + 2, t_cmd.end()
+                                    )
                                 )
-                            )
-                        );
+                            );
+                        }
+                        else
+                        {
+                            buff_collect.icmp.add_rule(
+                                IcmpRule(std::vector<std::string>(
+                                        t_cmd.begin() + 1, t_cmd.end()
+                                    )
+                                )
+                            );
+                        }
                     }
                     else // если правило неопределенного типа
                     {

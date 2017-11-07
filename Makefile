@@ -1,10 +1,10 @@
 UNAME_S := $(shell uname -s)
-CXX = g++-4.8
+CXX = g++
 
 PROGS = ddosdetector
 CLEANFILES = $(PROGS) *.o
 
-LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lcurl
+LDFLAGS = -lboost_system -lboost_thread -llog4cpp -lboost_program_options -lcurl -lpthread
 CPPFLAGS = -std=c++11 -Wall #-O2
 CPPFLAGS += -I ./sys -I ./proto
 
@@ -65,6 +65,8 @@ test: clean-test build-test run-test
 
 check:
 	@./test/cppcheck/cppcheck -q -j12 --platform=unix64 -itest --std=c++11 --enable=all --inconclusive --suppressions-list=./test/cppcheck_suppress.cfg ./
+
+build: all
 
 build-test: $(TESTS_BIN)
 	@echo "====> Run tests <===="

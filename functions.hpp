@@ -55,6 +55,10 @@ bool is_file_exist(const std::string& file_name);
 */
 bool is_executable(const std::string& file_name);
 /*
+ проверяет является ли строка числом
+*/
+bool is_number(const std::string& s);
+/*
  форматирует строку по определенной длинне для выравнивания вывода
  @param s: строка
  @param len: минимальная длинна выходной строки
@@ -67,6 +71,8 @@ std::string format_len(const std::string& s, unsigned int len);
 typedef boost::escaped_list_separator<char> separator_type;
 std::vector<std::string> tokenize(const std::string& input,
                                   const separator_type& separator);
+std::vector<std::string> tokenize(const std::string& input,
+                                  const char *symbol);
 std::vector<std::string> tokenize(const std::string& input);
 /*
  возвращает номер элемента value в списке vec, или вызывает исключение

@@ -96,12 +96,17 @@ void monitor(std::shared_ptr<RulesCollection> collect,
  Thread sends the data to the database InfluxDB, each period
 */
 void start_control(boost::asio::io_service& io_service,
-    std::string port, std::shared_ptr<RulesCollection> collect)
+    std::string controld_serv, std::shared_ptr<RulesCollection> collect)
 {
     try
     {
-        ControlServer serv(io_service, port, collect);
+        ControlServer serv(io_service, controld_serv, collect);
         io_service.run();
+    }
+    catch (ControldException& e)
+    {
+        std::cout << "Error: " << e.what() << std::endl;
+        raise(SIGTERM);
     }
     catch (std::exception& e)
     {
@@ -137,10 +142,10 @@ void task_runner(std::shared_ptr<ts_queue<action::TriggerJob>> task_list)
 int main(int argc, char** argv) {
     // Default settings
     std::string interface = "";
-    std::string config_file = "/etc/ddosdetector.conf";
-    std::string rules_file = "/etc/ddosdetector.rules";
+    std::string config_file = "/etc/ddosdetector/conf.ini";
+    std::string rules_file = "/etc/ddosdetector/rules.conf";
     std::string log_file = "";
-    std::string port = "9090";
+    std::string controld_serv = "127.0.0.1:9090";
     bool debug_mode = false;
     // Default for InfluxDB
     std::string influx_enable = "no";
@@ -157,10 +162,10 @@ int main(int argc, char** argv) {
     argv_opt.add_options()
         ("help,h", "show this help")
         ("interface,i", po::value<std::string>(&interface), "network interface (default eth4)")
-        //("config,c", po::value<std::string>(&config_file), "load config (default /etc/ddosdetector.conf)")
-        ("rules,r", po::value<std::string>(&rules_file), "load rules from file (default /etc/ddosdetector.rules)")
+        //("config,c", po::value<std::string>(&config_file), "load config (default /etc/ddosdetector/conf.ini)")
+        ("rules,r", po::value<std::string>(&rules_file), "load rules from file (default /etc/ddosdetector/rules.conf)")
         ("log,l", po::value<std::string>(&log_file), "log file (default output to console)")
-        ("port,p", po::value<std::string>(&port), "port for controld tcp server (may be unix socket file)")
+        ("server,s", po::value<std::string>(&controld_serv), "ip:port or unix socket file for controld server")
         ("debug,d", "enable debug output")
     ;
     // Configuration file options
@@ -169,7 +174,7 @@ int main(int argc, char** argv) {
         ("Main.Interface", po::value<std::string>(&interface))
         ("Main.Rules", po::value<std::string>(&rules_file))
         ("Main.Log", po::value<std::string>(&log_file))
-        ("Main.Port", po::value<std::string>(&port))
+        ("Main.Listen", po::value<std::string>(&controld_serv))
         ("IndluxDB.Enable", po::value<std::string>(&influx_enable))
         ("IndluxDB.User", po::value<std::string>(&influx_user))
         ("IndluxDB.Password", po::value<std::string>(&influx_pass))
@@ -368,7 +373,7 @@ int main(int argc, char** argv) {
 
     // run control server
     threads.add_thread(new boost::thread(start_control,
-                                         std::ref(io_s), port, main_collect));
+                                         std::ref(io_s), controld_serv, main_collect));
 
     // run triggerjob watcher thread
     threads.add_thread(new boost::thread(task_runner, task_list));

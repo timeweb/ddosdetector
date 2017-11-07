@@ -121,6 +121,12 @@ bool is_executable(const std::string& file_name)
     return false;
 }
 
+bool is_number(const std::string& s)
+{
+    return !s.empty() && std::find_if(s.begin(),
+        s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+}
+
 std::string format_len(const std::string& s, unsigned int len)
 {
     std::string s_format = "%-"
@@ -133,6 +139,7 @@ std::vector<std::string> tokenize(const std::string& input, const separator_type
 {
     // Tokenize the intput.
     boost::tokenizer<separator_type> tokens(input, separator);
+
 
     // Copy non-empty tokens from the tokenizer into the result.
     std::vector<std::string> result;
@@ -151,6 +158,13 @@ std::vector<std::string> tokenize(const std::string& input)
     separator_type separator("\\",   // The escape characters.
                             " ",     // The separator characters.
                             "\"\'"); // The quote characters.
+    return tokenize(input, separator);
+}
 
+std::vector<std::string> tokenize(const std::string& input, const char *symbol)
+{
+    separator_type separator("\\",   // The escape characters.
+                             symbol,     // The separator characters.
+                             "\"\'"); // The quote characters.
     return tokenize(input, separator);
 }

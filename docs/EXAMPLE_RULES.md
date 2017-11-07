@@ -8,8 +8,8 @@ TCP -d 92.53.116.23/32 --bps-th 100Mb --action log:/tmp/test.log
 TCP -d 92.53.116.22/32 --bps-th 100Mb --action log:/tmp/test.log
 TCP -d 92.53.116.40/32 --bps-th 100Mb --action log:/tmp/test.log
 TCP -d 92.53.98.109/32 --bps-th 100Mb --action log:/tmp/test.log
-TCP -d 92.53.98.104/32 --bps-th 100Mb --action log:/tmp/test.log
-TCP -d 92.53.116.66/32 --bps-th 100Mb --action log:/tmp/test.log
+TCP 10 -d 92.53.98.104/32 --bps-th 100Mb --action log:/tmp/test.log
+TCP 11 -d 92.53.116.66/32 --bps-th 100Mb --action log:/tmp/test.log
 TCP -d 92.53.116.67/32 --bps-th 100Mb --action log:/tmp/test.log
 TCP -d 92.53.116.68/32 --bps-th 100Mb --action log:/tmp/test.log
 TCP -d 92.53.116.69/32 --bps-th 100Mb --action log:/tmp/test.log

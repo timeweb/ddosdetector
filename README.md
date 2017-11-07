@@ -1,7 +1,7 @@
 # DDoS attack detector #
 Ddosdetector System - a flexible tool for analyzing network traffic and automation of the process of protection against DDoS attacks. The system is based on the framework, [Luigi Rizzo](https://github.com/luigirizzo/netmap) [netmap](https://habrahabr.ru/post/183832/) and is designed to work with a large volume of traffic (10GB / sec and more) without loss of performance.
 
-The system is written in C++ (Standard 11) using *STL* and *Boost (1.55)*. Writing and assembling was done on *Ubuntu 12.04.5 LTS* and compiler *g++4.8*. For static analysis and research style blunders used *cppcheck* version 1.73.
+The system is written in C++ (Standard 11) using *STL* and *Boost (1.58)*. Writing and assembling was done on *Ubuntu 16.04 LTS* and compiler *g++-5*. For static analysis and research style blunders used *cppcheck* version 1.73.
 
 InfluxDB can be used for monitoring and collection of statistics.
 ![Grafana](docs/images/grafana.png)
@@ -68,6 +68,7 @@ then the system should appear interface with netmap:
 ### Installing ddosdetector ###
 Build ddosdetector from source:
 ```bash
+sudo apt-get install g++ libboost-all-dev libcurl4-gnutls-dev liblog4cpp5-dev
 git clone https://velizarx@bitbucket.org/velizarx/ddosdetector.git
 cd ./ddosdetector
 make
@@ -86,12 +87,12 @@ depends:        mdio,netmap,dca
 Run ddosdetector (in example interface eth4):
 ```bash
 cd <path_to_ddosdetector_directory>
-./ddosdetector -i eth4 -r ~/ddosdetector.rules -p /tmp/ddosd.sock -l ~/ddosdetector.log
+./ddosdetector -i eth4 -r ~/ddosdetector.rules -s /tmp/ddosd.sock -l ~/ddosdetector.log
 ```
 Where:
 * *-i eth4 (**parameter is required**)* - *eth4* interface system that gets mirrored traffic;
-* *-r ~/ddosdetector.rules* - файл откуда будут загружены правила (этот параметр необязателен, по-умолчанию поиск файла производится по пути */etc/ddosdetector.rules*);
-* *-p /tmp/ddosd.sock* - how to run the management server (in this case, the UNIX socket, the file */tmp/ddosd.sock*), may also be the path to the file or port number (then run TCP server to 127.0.0.1 and port specified) parameter is optional. By default, TCP server runs on port 9090;
+* *-r ~/ddosdetector.rules* - файл откуда будут загружены правила (этот параметр необязателен, по-умолчанию поиск файла производится по пути */etc/ddosdetector/rules.conf*);
+* *-s /tmp/ddosd.sock* - how to run the management server (in this case, the UNIX socket, the file */tmp/ddosd.sock*), may also be the path to the file or ip:port (then run TCP server to ip and port specified) parameter is optional. By default, TCP server runs on 127.0.0.1:9090;
 * *-l ~/ddosdetector.log* - the path to the log file, the default output in the stdout
 
 then you can connect to the system:
@@ -102,16 +103,16 @@ socat - UNIX-CONNECT:/tmp/ddosd.sock
 ## Control ##
 ### Configuration files ###
 When you start the system tries to read the two configuration files:
-* /etc/ddosdetector.conf - general system settings
-* /etc/ddosdetector.rules - saved rules
+* /etc/ddosdetector/conf.ini - general system settings
+* /etc/ddosdetector/rules.conf - saved rules
 
-File */etc/ddosdetector.conf* can contain the following settings (the value of the name):
+File */etc/ddosdetector/conf.ini* can contain the following settings (the value of the name):
 ```ini
 [Main]
 Interface = eth0
-Rules = /etc/ddosdetector.rules
+Rules = /etc/ddosdetector/rules.conf
 Log = /var/log/ddosdetector.log
-Port = 9090
+Listen = 127.0.0.1:9090
 
 [IndluxDB]
 Enable = yes
@@ -134,7 +135,7 @@ To manage the system you want to connect to a running daemon. Depending on the s
 ```bash
 telnet 127.1 9090
 ```
-where 9090 - this is the default start port or the specified port option
+where 127.1 and 9090 - this is the default start ip:port or specified ip:port options
 
 #### UNIX socket server ####
 ```bash
@@ -275,7 +276,7 @@ ICMP rules (num, rule, counter):
     1:   -d 92.53.96.141/32 --pps-th 100p --type =0 --code =0   : 0.00p/s (0.00b/s), 0 packets, 0 bytes
 ```
 #### Reload rules from file ####
-At startup, the system checks the configuration file previously saved rules (by default */etc/ddosdetector.rules*). If the reference system is already running, you can restart the rules from the file manually. Restart the rules of the file is performed either from the command control console **reload rules** any SIGHUP signal sent to the demon. For example rules file has the contents:
+At startup, the system checks the configuration file previously saved rules (by default */etc/ddosdetector/rules.conf*). If the reference system is already running, you can restart the rules from the file manually. Restart the rules of the file is performed either from the command control console **reload rules** any SIGHUP signal sent to the demon. For example rules file has the contents:
 ```bash
 $ cat ~/ddosdetector.rules
 TCP -d 92.53.96.141/32 --pps-th 100p --seq =0 --pps-th-period 60 --action log:/tmp/test.log --next

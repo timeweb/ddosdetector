@@ -35,7 +35,7 @@ auth-enabled = false
 ```
 /etc/init.d/influxdb restart
 ```
-настраиваем доступ в конфигурационном файле ddosdetector (/etc/ddosdetector.conf)
+настраиваем доступ в конфигурационном файле ddosdetector (/etc/ddosdetector/conf.ini)
 ```bash
 [IndluxDB]
 Enable = yes
