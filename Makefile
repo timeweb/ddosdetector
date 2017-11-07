@@ -66,6 +66,8 @@ test: clean-test build-test run-test
 check:
 	@./test/cppcheck/cppcheck -q -j12 --platform=unix64 -itest --std=c++11 --enable=all --inconclusive --suppressions-list=./test/cppcheck_suppress.cfg ./
 
+build: all
+
 build-test: $(TESTS_BIN)
 	@echo "====> Run tests <===="
 
