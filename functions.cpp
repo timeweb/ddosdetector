@@ -121,6 +121,12 @@ bool is_executable(const std::string& file_name)
     return false;
 }
 
+bool is_number(const std::string& s)
+{
+    return !s.empty() && std::find_if(s.begin(),
+        s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+}
+
 std::string format_len(const std::string& s, unsigned int len)
 {
     std::string s_format = "%-"

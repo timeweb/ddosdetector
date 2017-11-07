@@ -55,6 +55,10 @@ bool is_file_exist(const std::string& file_name);
 */
 bool is_executable(const std::string& file_name);
 /*
+ проверяет является ли строка числом
+*/
+bool is_number(const std::string& s);
+/*
  форматирует строку по определенной длинне для выравнивания вывода
  @param s: строка
  @param len: минимальная длинна выходной строки

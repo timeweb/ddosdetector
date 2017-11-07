@@ -122,7 +122,7 @@ void ControlSession<T>::parse()
                 do_write(collect_->get_rules());
                 return;
             }
-            if(t_cmd[0] == "reload" && t_cmd[1] == "rules") // show rules
+            if(t_cmd[0] == "reload" && t_cmd[1] == "rules") // reload rules from file
             {
                 raise(1);
                 return;
