@@ -140,6 +140,7 @@ std::vector<std::string> tokenize(const std::string& input, const separator_type
     // Tokenize the intput.
     boost::tokenizer<separator_type> tokens(input, separator);
 
+
     // Copy non-empty tokens from the tokenizer into the result.
     std::vector<std::string> result;
     for(const auto& t: tokens)
@@ -157,6 +158,13 @@ std::vector<std::string> tokenize(const std::string& input)
     separator_type separator("\\",   // The escape characters.
                             " ",     // The separator characters.
                             "\"\'"); // The quote characters.
+    return tokenize(input, separator);
+}
 
+std::vector<std::string> tokenize(const std::string& input, const char *symbol)
+{
+    separator_type separator("\\",   // The escape characters.
+                             symbol,     // The separator characters.
+                             "\"\'"); // The quote characters.
     return tokenize(input, separator);
 }

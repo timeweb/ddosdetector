@@ -30,5 +30,14 @@ private:
     std::string message_;
 };
 
+class ControldException: public std::exception
+{
+public:
+    explicit ControldException(const std::string& message);
+    virtual const char* what() const throw();
+private:
+    std::string message_;
+};
+
 
 #endif // end EXCEPTIONS_HPP

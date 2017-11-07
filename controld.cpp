@@ -124,7 +124,7 @@ void ControlSession<T>::parse()
             }
             if(t_cmd[0] == "reload" && t_cmd[1] == "rules") // reload rules from file
             {
-                raise(1);
+                raise(SIGHUP);
                 return;
             }
             // TODO: сделать monitor rules команду, с обновлением раз в секунду
@@ -267,39 +267,60 @@ void ControlSession<T>::parse()
 }
 
 
-ControlServer::ControlServer(io_service& io_service, const std::string& port,
+ControlServer::ControlServer(io_service& io_service, const std::string& listen,
         std::shared_ptr<RulesCollection> collect)
-    : is_unix_socket_(true), port_(port), collect_(collect)
+    : is_unix_socket_(true), listen_(listen), collect_(collect)
 {
-    short num_port = 0;
-    try
-    {
-        num_port = boost::lexical_cast<short>(port_);
+    if (listen_.find(":") != std::string::npos) {
         is_unix_socket_ = false;
     }
-    catch(boost::bad_lexical_cast &) {}
     if(is_unix_socket_)
     {
-        local::stream_protocol::endpoint ep(port_);
-        unix_acceptor_ = std::make_shared<local::stream_protocol::stream_protocol::acceptor>(io_service, ep);
-        unix_socket_ = std::make_shared<local::stream_protocol::stream_protocol::socket>(io_service);
-        logger.info("Start controld unix socket server on " + port_);
+        try{
+            local::stream_protocol::endpoint ep(listen_);
+            unix_acceptor_ = std::make_shared<local::stream_protocol::stream_protocol::acceptor>(io_service, ep);
+            unix_socket_ = std::make_shared<local::stream_protocol::stream_protocol::socket>(io_service);
+            logger.info("Start controld unix socket server on " + listen_);
+        }
+        catch(std::exception& e)
+        {
+            throw ControldException(e.what());
+        }
         do_unix_accept();
     }
     else
     {
-        ip::tcp::tcp::endpoint ep(ip::tcp::tcp::v4(), num_port);
-        tcp_acceptor_ = std::make_shared<ip::tcp::tcp::acceptor>(io_service, ep);
-        tcp_socket_ = std::make_shared<ip::tcp::tcp::socket>(io_service);
-        logger.info("Start controld tcp server on " + to_string(num_port));
+        std::vector<std::string> ip_port = tokenize(listen_, ":");
+        short num_port = 0;
+        try{
+            if (ip_port.size() != 2)
+            {
+                throw ControldException("Bad ip or port parametr. Use <ip>:<port>.");
+            }
+            try
+            {
+                num_port = boost::lexical_cast<short>(ip_port[1]);
+            }
+            catch(boost::bad_lexical_cast &) {
+                throw ControldException("Bad port number.");
+            }
+            ip::tcp::tcp::endpoint ep(ip::address::from_string(ip_port[0]), num_port);
+            tcp_acceptor_ = std::make_shared<ip::tcp::tcp::acceptor>(io_service, ep);
+            tcp_socket_ = std::make_shared<ip::tcp::tcp::socket>(io_service);
+            logger.info("Start controld tcp server on " + listen_);
+        }
+        catch(std::exception& e)
+        {
+            throw ControldException(e.what());
+        }
         do_tcp_accept();
     }
 }
 ControlServer::~ControlServer()
 {
-    if(is_unix_socket_ && is_file_exist(port_))
+    if(is_unix_socket_ && is_file_exist(listen_))
     {
-        remove(port_.c_str());
+        remove(listen_.c_str());
     }
 }
 void ControlServer::do_tcp_accept()

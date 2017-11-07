@@ -97,7 +97,7 @@ private:
     // флаг unix сервера
     bool is_unix_socket_;
     // порт запуска
-    std::string port_;
+    std::string listen_;
     // acceptors
     std::shared_ptr<boost::asio::ip::tcp::tcp::acceptor> tcp_acceptor_;
     std::shared_ptr<boost::asio::local::stream_protocol::acceptor> unix_acceptor_;
